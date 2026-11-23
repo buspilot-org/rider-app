@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "43542515684",
+    "project_id": "buspilot-84a51",
+    "storage_bucket": "buspilot-84a51.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:43542515684:android:888c7f7f502c6d6204c1f1",
+        "android_client_info": {
+          "package_name": "org.buspilot.buspilot_rider"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRLR-jxzXCiiyJy0VE4R27nchnFJbXfMY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
