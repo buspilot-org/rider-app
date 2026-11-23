@@ -104,9 +104,8 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
     final l = context.l10n;
     try {
       final isNew = await state.saveSubscription(_withPause());
-      final ask = isNew && state.push.available && !await state.push.isAllowed();
       if (!mounted) return;
-      if (ask) {
+      if (isNew && state.shouldOfferPush) {
         // Say why before the system asks (concept: rider-app.md).
         final ok = await showDialog<bool>(
           context: context,

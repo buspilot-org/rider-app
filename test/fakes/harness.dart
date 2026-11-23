@@ -1,4 +1,5 @@
 import 'package:buspilot_rider/src/app.dart';
+import 'package:buspilot_rider/src/push/push_service.dart';
 import 'package:buspilot_rider/src/state/app_state.dart';
 import 'package:buspilot_rider/src/state/local_store.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,7 @@ Future<AppState> pumpApp(
   bool onboarded = true,
   String? language = 'en',
   Stream<Uri>? links,
+  PushService? push,
 }) async {
   final s = store ?? await freshStore(onboarded: onboarded, language: language);
   var clock = now ?? mondayMorning;
@@ -38,6 +40,7 @@ Future<AppState> pumpApp(
     store: s,
     clock: () => clock,
     phoneLanguage: () => 'en',
+    push: push ?? const NoPushService(),
   );
   await tester.pumpWidget(RiderApp(state: state, links: links));
   await tester.runAsync(state.start);

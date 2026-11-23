@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:buspilot_rider/src/data/api.dart';
 import 'package:buspilot_rider/src/data/models.dart';
 
@@ -173,7 +175,11 @@ class FakeApi implements BuspilotApi {
   }
 
   @override
-  Future<void> setPushToken(String? token) async => calls.add('pushToken');
+  Future<void> setPushToken(String? token) async => calls.add('pushToken:$token');
+
+  /// When set, fetchCatalog waits for it (to test overlapping refreshes).
+  Completer<void>? catalogGate;
+  int catalogCalls = 0;
 
   @override
   Future<RedeemResult> redeemInviteCode(String code) async {
@@ -190,6 +196,8 @@ class FakeApi implements BuspilotApi {
 
   @override
   Future<Json> fetchCatalog() async {
+    catalogCalls++;
+    await catalogGate?.future;
     _check();
     calls.add('catalog');
     if (!_member) {
@@ -243,8 +251,10 @@ class FakeApi implements BuspilotApi {
   Future<MapData> fetchMapData({
     required String? shapeId,
     required List<String> stopIds,
-    String? tripInstanceId,
   }) async => const MapData();
+
+  @override
+  Future<VehiclePosition?> fetchVehicle(String tripInstanceId) async => null;
 
   @override
   Future<void> saveSubscription(Subscription s) async {

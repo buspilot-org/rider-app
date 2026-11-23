@@ -34,6 +34,7 @@ class RouteMap extends StatefulWidget {
 class _RouteMapState extends State<RouteMap> {
   MapLibreMapController? _controller;
   MapData? _data;
+  LngLat? _vehicle;
   bool _styleLoaded = false;
   Timer? _timer;
   Circle? _bus;
@@ -43,13 +44,13 @@ class _RouteMapState extends State<RouteMap> {
   void initState() {
     super.initState();
     _load();
-    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _load());
+    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _loadVehicle());
   }
 
   @override
   void didUpdateWidget(RouteMap old) {
     super.didUpdateWidget(old);
-    if (old.tripInstanceId != widget.tripInstanceId) _load();
+    if (old.tripInstanceId != widget.tripInstanceId) _loadVehicle();
   }
 
   @override
@@ -58,21 +59,33 @@ class _RouteMapState extends State<RouteMap> {
     super.dispose();
   }
 
+  /// Route line and stops, once.
   Future<void> _load() async {
     try {
       final data = await AppScope.read(context).api.fetchMapData(
         shapeId: widget.pattern.shapeId,
         stopIds: [for (final s in widget.pattern.stops) s.stopId],
-        tripInstanceId: widget.tripInstanceId,
       );
       if (!mounted) return;
-      final first = _data == null;
-      _data = data;
-      if (first) setState(() {});
-      await _draw(fit: first);
+      setState(() => _data = data);
+      await _draw(fit: true);
+      await _loadVehicle();
     } catch (_) {
       // Offline or not allowed: no map.
       if (mounted && _data == null) setState(() => _failed = true);
+    }
+  }
+
+  /// The bus, polled while the map is on screen (LiveSource).
+  Future<void> _loadVehicle() async {
+    final id = widget.tripInstanceId;
+    try {
+      final v = id == null ? null : await AppScope.read(context).live.fetchVehicle(id);
+      if (!mounted) return;
+      _vehicle = v?.position;
+      await _draw();
+    } catch (_) {
+      // Keep the last position until the next poll.
     }
   }
 
@@ -107,7 +120,7 @@ class _RouteMapState extends State<RouteMap> {
         await c.moveCamera(CameraUpdate.newLatLngBounds(_bounds(all), left: 32, right: 32, top: 32, bottom: 32));
       }
     }
-    final v = d.vehicle;
+    final v = _vehicle;
     if (v != null) {
       final opts = CircleOptions(
         geometry: LatLng(v.lat, v.lng),

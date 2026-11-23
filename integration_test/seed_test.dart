@@ -36,8 +36,13 @@ void main() {
     expect(AppConfig.isConfigured, isTrue, reason: 'build with --dart-define-from-file');
     tzdata.initializeTimeZones();
     await Supabase.initialize(url: AppConfig.supabaseUrl, publishableKey: AppConfig.supabaseKey);
-    // A fresh anonymous device every run.
-    await Supabase.instance.client.auth.signOut();
+    // A fresh anonymous device every run. The client restores a stored
+    // session (from an earlier run of the app with the same package id) in
+    // the background; let that finish before signing out.
+    final auth = Supabase.instance.client.auth;
+    await auth.onAuthStateChange.first.timeout(const Duration(seconds: 5), onTimeout: () => AuthState(AuthChangeEvent.initialSession, null));
+    await auth.signOut();
+    expect(auth.currentUser, isNull);
     final store = await LocalStore.open();
     await store.clear();
 

@@ -75,6 +75,9 @@ void main() {
       ],
     );
     api.subscriptions.add(_sub(3));
+    // 07:50: still within 15 minutes of 07:39, the cancellation shows.
+    await pumpApp(tester, api: api, now: kobe(7, 50));
+    expect(find.text('Cancelled (07:39)'), findsOneWidget);
     // 08:00: the 07:30 trip (07:39 at Sannomiya) is over; 08:10 is next.
     await pumpApp(tester, api: api, now: kobe(8, 0));
     expect(find.text('08:19 · in 19 min'), findsOneWidget);

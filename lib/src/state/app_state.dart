@@ -22,13 +22,19 @@ class AppState extends ChangeNotifier {
     required this.api,
     required this.store,
     this.push = const NoPushService(),
+    LiveSource? live,
     DateTime Function()? clock,
     String Function()? phoneLanguage,
     this.platform = 'android',
-  }) : clock = clock ?? DateTime.now,
+  }) : live = live ?? api,
+       clock = clock ?? DateTime.now,
        _phoneLanguage = phoneLanguage ?? _systemLanguage;
 
   final BuspilotApi api;
+
+  /// Trip progress, ETAs and bus positions (Supabase now, the engine's Live
+  /// API later).
+  final LiveSource live;
   final LocalStore store;
   final PushService push;
   final DateTime Function() clock;
@@ -105,13 +111,13 @@ class AppState extends ChangeNotifier {
       // Nothing loaded and nothing cached: say so rather than showing an
       // empty home.
       startup = fetchedAt == null ? StartupState.offlineNoData : StartupState.ready;
-      if (startup == StartupState.ready) _listenForPushTokens();
+      if (startup == StartupState.ready && store.pushOptedIn) _listenForPushTokens();
     } catch (e) {
       // Offline, or the server refused (5xx, auth): show the cache if there
       // is one, else a retry screen.
       if (e is! OfflineException) debugPrint('Start failed: $e');
       offline = e is OfflineException;
-      serverError = e is! OfflineException;
+      serverError = !offline;
       startup = hasCache ? StartupState.ready : StartupState.offlineNoData;
     }
     notifyListeners();
@@ -141,7 +147,11 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Registers for push. Only after the user opted in (the explanation
+  /// before the permission prompt), whatever the OS permission says: on
+  /// Android 12 and older notifications are allowed by default.
   void _listenForPushTokens() {
+    if (!store.pushOptedIn) return;
     _tokenSub ??= push.tokenRefresh.listen((t) async {
       try {
         await api.setPushToken(t);
@@ -193,7 +203,12 @@ class AppState extends ChangeNotifier {
     }();
   }
 
+  /// Bumped by [deleteMyData]: a refresh that started before must not write
+  /// the deleted device's data back.
+  int _generation = 0;
+
   Future<void> _refreshOnce() async {
+    final generation = _generation;
     refreshing = true;
     notifyListeners();
     try {
@@ -203,10 +218,11 @@ class AppState extends ChangeNotifier {
         for (final op in next.operators)
           formatDate(serviceDay(locationOf(op), clock())),
       }.toList();
-      final instanceJson = await api.fetchTripInstances(
+      final instanceJson = await live.fetchTripInstances(
         routeIds: [for (final r in next.routes) r.id],
         serviceDates: dates,
       );
+      if (generation != _generation) return;
       catalog = next;
       instances = instanceJson.map(TripInstance.new).toList();
       fetchedAt = clock();
@@ -215,9 +231,11 @@ class AppState extends ChangeNotifier {
       await store.writeCache(catalogJson, instanceJson, fetchedAt!);
     } on OfflineException {
       offline = true;
+      serverError = false;
     } catch (e) {
       debugPrint('Refresh failed: $e');
       serverError = true;
+      offline = false;
     } finally {
       refreshing = false;
       notifyListeners();
@@ -242,9 +260,13 @@ class AppState extends ChangeNotifier {
     return isNew;
   }
 
-  /// Asks for notification permission (after the user saw why) and
-  /// registers for push when granted.
+  /// Whether to explain push and ask: push works in this build and the user
+  /// has not opted in yet.
+  bool get shouldOfferPush => push.available && !store.pushOptedIn;
+
+  /// The user agreed after the explanation: ask the OS, then register.
   Future<void> enablePush() async {
+    await store.setPushOptedIn();
     if (await push.requestPermission()) _listenForPushTokens();
   }
 
@@ -261,7 +283,14 @@ class AppState extends ChangeNotifier {
   /// Deletes the device on the server and everything on the phone, then
   /// starts over.
   Future<void> deleteMyData() async {
+    // Let a running refresh finish; anything still in flight afterwards is
+    // discarded through the generation.
+    await _inflight;
     await api.deleteMyData();
+    _generation++;
+    await _tokenSub?.cancel();
+    _tokenSub = null;
+    await push.unregister();
     await store.clear();
     catalog = Catalog.empty();
     instances = const [];

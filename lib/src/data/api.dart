@@ -13,21 +13,39 @@ class RedeemResult {
 /// Geometry for the route map. Empty when the device may not see the map
 /// (RLS returns nothing).
 class MapData {
-  const MapData({
-    this.line = const [],
-    this.stops = const {},
-    this.vehicle,
-    this.vehicleAt,
-  });
+  const MapData({this.line = const [], this.stops = const {}});
 
   final List<LngLat> line;
 
   /// stop id → position.
   final Map<String, LngLat> stops;
-  final LngLat? vehicle;
-  final DateTime? vehicleAt;
 
   bool get isEmpty => line.isEmpty && stops.isEmpty;
+}
+
+/// The bus position of an active trip (map level only).
+class VehiclePosition {
+  const VehiclePosition(this.position, this.recordedAt);
+  final LngLat position;
+  final DateTime? recordedAt;
+}
+
+/// Live state: trip progress, stop states, ETAs and the bus position.
+///
+/// Read from Supabase by polling for now. The engine's Live API
+/// (`GET /v1/live/routes/:id`, SSE, authenticated with the Supabase access
+/// token; internal/concept/engine.md) replaces it later behind this
+/// interface; there are no Supabase Realtime subscriptions.
+abstract class LiveSource {
+  /// Trip instances with their stop events for [routeIds] on [serviceDates]
+  /// ("2026-11-23").
+  Future<List<Json>> fetchTripInstances({
+    required List<String> routeIds,
+    required List<String> serviceDates,
+  });
+
+  /// The bus of an active trip, if the device may see it on a map.
+  Future<VehiclePosition?> fetchVehicle(String tripInstanceId);
 }
 
 /// Thrown when the network or the server is not reachable.
@@ -40,7 +58,7 @@ class OfflineException implements Exception {
 
 /// Everything the app reads and writes on the backend. RLS decides what the
 /// anonymous device sees, so the app simply reads.
-abstract class BuspilotApi {
+abstract class BuspilotApi implements LiveSource {
   /// Signs in anonymously unless a session exists; returns the user id.
   Future<String> ensureSignedIn();
 
@@ -57,18 +75,10 @@ abstract class BuspilotApi {
   /// memberships, subscriptions and posts, as raw JSON for [Catalog].
   Future<Json> fetchCatalog();
 
-  /// Trip instances with their stop events for [routeIds] on [serviceDates]
-  /// ("2026-11-23").
-  Future<List<Json>> fetchTripInstances({
-    required List<String> routeIds,
-    required List<String> serviceDates,
-  });
-
   /// Map geometry of a pattern (only returned at map level).
   Future<MapData> fetchMapData({
     required String? shapeId,
     required List<String> stopIds,
-    String? tripInstanceId,
   });
 
   /// Creates or updates a subscription (one per pattern and stop sequence).

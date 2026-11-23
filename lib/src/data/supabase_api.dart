@@ -111,12 +111,33 @@ class SupabaseApi implements BuspilotApi {
             'notify_passed,muted_until',
           )
           .eq('device_id', _uid),
-      client
-          .from('post')
-          .select('id,operator_id,route_id,title,body,published_at')
-          .order('published_at', ascending: false)
-          .limit(100),
     ]);
+    // Posts of joined operators and of followed routes only: RLS also
+    // returns every public operator's posts, which would crowd out the
+    // device's own under the limit.
+    final members = {
+      for (final m in results[4])
+        if ((m as Map)['revoked_at'] == null) m['operator_id'] as String,
+    };
+    final followedPatterns = {for (final s in results[5]) (s as Map)['pattern_id'] as String};
+    final followedRoutes = {
+      for (final r in results[1])
+        if (((r as Map)['trip_pattern'] as List? ?? const [])
+            .any((p) => followedPatterns.contains((p as Map)['id'])))
+          r['id'] as String,
+    };
+    final filters = [
+      if (members.isNotEmpty) 'operator_id.in.(${members.join(',')})',
+      if (followedRoutes.isNotEmpty) 'route_id.in.(${followedRoutes.join(',')})',
+    ];
+    final posts = filters.isEmpty
+        ? const <Map<String, dynamic>>[]
+        : await client
+              .from('post')
+              .select('id,operator_id,route_id,title,body,published_at')
+              .or(filters.join(','))
+              .order('published_at', ascending: false)
+              .limit(100);
     return {
       'operators': results[0],
       'routes': results[1],
@@ -124,7 +145,7 @@ class SupabaseApi implements BuspilotApi {
       'calendars': results[3],
       'memberships': results[4],
       'subscriptions': results[5],
-      'posts': results[6],
+      'posts': posts,
     };
   });
 
@@ -150,7 +171,6 @@ class SupabaseApi implements BuspilotApi {
   Future<MapData> fetchMapData({
     required String? shapeId,
     required List<String> stopIds,
-    String? tripInstanceId,
   }) => _run(() async {
     final shapeRows = shapeId == null
         ? const <Map<String, dynamic>>[]
@@ -161,25 +181,27 @@ class SupabaseApi implements BuspilotApi {
               .from('stop_location')
               .select('id,location')
               .inFilter('id', stopIds);
-    final vehicleRows = tripInstanceId == null
-        ? const <Map<String, dynamic>>[]
-        : await client
-              .from('vehicle_state')
-              .select('location,recorded_at')
-              .eq('trip_instance_id', tripInstanceId);
-    final vehicle = vehicleRows.isEmpty
-        ? null
-        : decodeEwkb(vehicleRows.first['location'])?.first;
     return MapData(
       line: shapeRows.isEmpty ? const [] : (decodeEwkb(shapeRows.first['geom']) ?? const []),
       stops: {
         for (final r in stopRows)
           if (decodeEwkb(r['location']) case [final p]) r['id'] as String: p,
       },
-      vehicle: vehicle,
-      vehicleAt: vehicleRows.isEmpty
-          ? null
-          : DateTime.tryParse(vehicleRows.first['recorded_at'] as String? ?? ''),
+    );
+  });
+
+  @override
+  Future<VehiclePosition?> fetchVehicle(String tripInstanceId) => _run(() async {
+    final rows = await client
+        .from('vehicle_state')
+        .select('location,recorded_at')
+        .eq('trip_instance_id', tripInstanceId);
+    if (rows.isEmpty) return null;
+    final p = decodeEwkb(rows.first['location']);
+    if (p == null || p.isEmpty) return null;
+    return VehiclePosition(
+      p.first,
+      DateTime.tryParse(rows.first['recorded_at'] as String? ?? ''),
     );
   });
 

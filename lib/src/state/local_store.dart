@@ -18,6 +18,7 @@ class LocalStore {
   static const _instances = 'cache.instances';
   static const _fetchedAt = 'cache.fetched_at';
   static const _deviceTouchedAt = 'device_touched_at';
+  static const _pushOptedIn = 'push_opted_in';
 
   static const keys = {
     _language,
@@ -27,6 +28,7 @@ class LocalStore {
     _instances,
     _fetchedAt,
     _deviceTouchedAt,
+    _pushOptedIn,
   };
 
   static Future<LocalStore> open() async => LocalStore(
@@ -44,6 +46,10 @@ class LocalStore {
   /// The language was chosen on first start.
   bool get onboarded => _prefs.getBool(_onboarded) ?? false;
   Future<void> setOnboarded() => _prefs.setBool(_onboarded, true);
+
+  /// The user agreed to push notifications in the app's explanation.
+  bool get pushOptedIn => _prefs.getBool(_pushOptedIn) ?? false;
+  Future<void> setPushOptedIn() => _prefs.setBool(_pushOptedIn, true);
 
   DateTime? get newsReadAt => _time(_newsReadAt);
   Future<void> setNewsReadAt(DateTime t) =>

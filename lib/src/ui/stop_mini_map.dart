@@ -37,7 +37,6 @@ class _StopMiniMapState extends State<StopMiniMap> {
       if (mounted) setState(() => _point = data.stops[widget.stopId]);
     } catch (_) {
       // Offline or not allowed: no map.
-      // No map offline.
     }
   }
 

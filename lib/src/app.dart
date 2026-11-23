@@ -29,8 +29,8 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
   final _navigator = GlobalKey<NavigatorState>();
   StreamSubscription<Uri>? _linkSub;
   String? _pendingCode;
-  String? _lastCode;
   Uri? _lastUri;
+  DateTime? _lastAt;
 
   AppState get state => widget.state;
 
@@ -57,10 +57,15 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
 
   void _onLink(Uri uri) {
     final code = inviteCodeFrom(uri.toString());
-    // uriLinkStream may repeat the initial link.
-    if (code == null || (code == _lastCode && uri == _lastUri)) return;
-    _lastCode = code;
+    // uriLinkStream may repeat the initial link right away; a later tap on
+    // the same link opens the join screen again.
+    final now = DateTime.now();
+    if (code == null ||
+        (uri == _lastUri && _lastAt != null && now.difference(_lastAt!) < const Duration(seconds: 3))) {
+      return;
+    }
     _lastUri = uri;
+    _lastAt = now;
     _pendingCode = code;
     _maybeOpenPending();
   }

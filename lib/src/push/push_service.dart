@@ -11,8 +11,11 @@ abstract class PushService {
   /// user follows a stop, never on first start.
   Future<bool> requestPermission();
 
-  /// Whether notifications are already allowed (no need to ask).
+  /// Whether notifications are already allowed by the OS.
   Future<bool> isAllowed();
+
+  /// Removes this app instance's registration (delete my data).
+  Future<void> unregister();
 
   /// The current token, or null when push is not available.
   Future<String?> token();
@@ -32,6 +35,9 @@ class NoPushService implements PushService {
 
   @override
   Future<bool> isAllowed() async => false;
+
+  @override
+  Future<void> unregister() async {}
 
   @override
   Future<String?> token() async => null;

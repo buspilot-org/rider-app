@@ -57,6 +57,15 @@ class FcmPushService implements PushService {
   }
 
   @override
+  Future<void> unregister() async {
+    try {
+      await _messaging.unregister();
+    } catch (e) {
+      debugPrint('Push unregister failed ($e)');
+    }
+  }
+
+  @override
   Future<String?> token() async {
     try {
       // Only once the user allowed notifications (asked after following a

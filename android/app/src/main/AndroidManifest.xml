@@ -43,6 +43,11 @@
                 <data android:scheme="https" android:host="buspilot.org" android:pathPrefix="/join/"/>
             </intent-filter>
         </activity>
+        <!-- No FCM registration (and no Firebase Installation ID) before the
+             user opted in; the app calls register() itself. -->
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="false" />
         <!-- FCM registration by Firebase Installation ID (register() and
              onRegistered in firebase_messaging 17). -->
         <meta-data
