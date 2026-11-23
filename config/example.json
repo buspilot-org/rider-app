@@ -1,0 +1,5 @@
+{
+  "SUPABASE_URL": "http://127.0.0.1:55321",
+  "SUPABASE_PUBLISHABLE_KEY": "<publishable key from `npx supabase status` in the server repo>",
+  "MAP_STYLE_URL": ""
+}
