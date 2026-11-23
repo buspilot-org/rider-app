@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local build configuration (Supabase URL and key, map style)
+/config/*.json
+!/config/example.json

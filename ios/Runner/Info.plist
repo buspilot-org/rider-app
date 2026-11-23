@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Buspilot Rider</string>
+	<string>Buspilot</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,23 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>buspilot_rider</string>
+	<string>Buspilot</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>ja</string>
+		<string>en</string>
+		<string>de</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Buspilot uses the camera only to scan invite QR codes.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Plain HTTP only to local addresses (the local Supabase stack). -->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
