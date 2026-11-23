@@ -53,6 +53,12 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
     }
     final op = catalog.operator(route.operatorId);
     final patterns = route.patterns;
+    if (patterns.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(route.name.resolve(context.lang))),
+        body: ListTile(leading: const Icon(Icons.event_busy), title: Text(l.arrivalNoBusToday)),
+      );
+    }
     final pattern = patterns.firstWhere(
       (p) => p.id == _patternId,
       orElse: () => patterns.first,
@@ -121,7 +127,7 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
         onRefresh: state.refresh,
         child: ListView(
           children: [
-            UpdatedLine(fetchedAt: state.fetchedAt, offline: state.offline),
+            const UpdatedLine(),
             if (showMap)
               SizedBox(
                 height: 240,

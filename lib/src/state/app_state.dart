@@ -1,5 +1,6 @@
 import 'dart:async';
 
+
 import 'package:flutter/widgets.dart';
 
 import '../data/api.dart';
@@ -45,6 +46,9 @@ class AppState extends ChangeNotifier {
 
   /// The last refresh failed for lack of network; data is from the cache.
   bool offline = false;
+
+  /// The last refresh failed on the server side; data is from the cache.
+  bool serverError = false;
   bool refreshing = false;
   StreamSubscription<String>? _tokenSub;
 
@@ -98,10 +102,16 @@ class AppState extends ChangeNotifier {
       await api.ensureSignedIn();
       await _touchDevice(force: true);
       await refresh();
-      startup = StartupState.ready;
-      _listenForPushTokens();
-    } on OfflineException {
-      offline = true;
+      // Nothing loaded and nothing cached: say so rather than showing an
+      // empty home.
+      startup = fetchedAt == null ? StartupState.offlineNoData : StartupState.ready;
+      if (startup == StartupState.ready) _listenForPushTokens();
+    } catch (e) {
+      // Offline, or the server refused (5xx, auth): show the cache if there
+      // is one, else a retry screen.
+      if (e is! OfflineException) debugPrint('Start failed: $e');
+      offline = e is OfflineException;
+      serverError = e is! OfflineException;
       startup = hasCache ? StartupState.ready : StartupState.offlineNoData;
     }
     notifyListeners();
@@ -125,20 +135,29 @@ class AppState extends ChangeNotifier {
     try {
       await api.touchDevice(platform: platform, language: language);
       await store.setDeviceTouchedAt(now);
-    } on OfflineException {
+    } catch (e) {
       // Next time.
+      if (e is! OfflineException) debugPrint('Device update failed: $e');
     }
   }
 
   void _listenForPushTokens() {
-    _tokenSub ??= push.tokenRefresh.listen((t) => api.setPushToken(t));
+    _tokenSub ??= push.tokenRefresh.listen((t) async {
+      try {
+        await api.setPushToken(t);
+      } catch (e) {
+        // Registered again on the next start.
+        debugPrint('Push token not stored: $e');
+      }
+    });
     unawaited(() async {
       final token = await push.token();
       if (token != null) {
         try {
           await api.setPushToken(token);
-        } on OfflineException {
+        } catch (e) {
           // Registered again on the next start.
+          debugPrint('Push token not stored: $e');
         }
       }
     }());
@@ -151,13 +170,34 @@ class AppState extends ChangeNotifier {
     await refresh();
   }
 
-  /// Reloads the catalog and today's trips. Keeps the old data when offline.
-  Future<void> refresh() async {
-    if (refreshing) return;
+  Future<void>? _inflight;
+  bool _again = false;
+
+  /// Reloads the catalog and today's trips. Keeps the old data when that
+  /// fails. A call during a running refresh runs once more afterwards (so a
+  /// change just made is never missed) and completes with it.
+  Future<void> refresh() {
+    if (_inflight != null) {
+      _again = true;
+      return _inflight!;
+    }
+    return _inflight = () async {
+      try {
+        do {
+          _again = false;
+          await _refreshOnce();
+        } while (_again);
+      } finally {
+        _inflight = null;
+      }
+    }();
+  }
+
+  Future<void> _refreshOnce() async {
     refreshing = true;
     notifyListeners();
     try {
-      final catalogJson = await api.fetchCatalog();
+      final catalogJson = visibleCatalog(await api.fetchCatalog());
       final next = Catalog(catalogJson);
       final dates = {
         for (final op in next.operators)
@@ -171,9 +211,13 @@ class AppState extends ChangeNotifier {
       instances = instanceJson.map(TripInstance.new).toList();
       fetchedAt = clock();
       offline = false;
+      serverError = false;
       await store.writeCache(catalogJson, instanceJson, fetchedAt!);
     } on OfflineException {
       offline = true;
+    } catch (e) {
+      debugPrint('Refresh failed: $e');
+      serverError = true;
     } finally {
       refreshing = false;
       notifyListeners();
@@ -195,12 +239,13 @@ class AppState extends ChangeNotifier {
     final isNew = s.id == null;
     await api.saveSubscription(s);
     await refresh();
-    if (isNew) {
-      unawaited(() async {
-        if (await push.requestPermission()) _listenForPushTokens();
-      }());
-    }
     return isNew;
+  }
+
+  /// Asks for notification permission (after the user saw why) and
+  /// registers for push when granted.
+  Future<void> enablePush() async {
+    if (await push.requestPermission()) _listenForPushTokens();
   }
 
   Future<void> unfollow(Subscription s) async {

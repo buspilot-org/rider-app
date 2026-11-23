@@ -23,7 +23,12 @@ String? inviteCodeFrom(String raw) {
 
 /// Codes are letters and digits, typed with or without dashes and spaces.
 String? _codeOrNull(String value) {
-  final v = Uri.decodeComponent(value).trim();
+  final String v;
+  try {
+    v = Uri.decodeComponent(value).trim();
+  } on ArgumentError {
+    return null; // A malformed %-escape.
+  }
   if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9 \-]{3,40}$').hasMatch(v)) return null;
   return v.toUpperCase();
 }

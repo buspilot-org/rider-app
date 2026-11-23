@@ -104,6 +104,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String notUpdatedAsOf(String time) {
+    return '更新できません · $time 時点';
+  }
+
+  @override
   String arrivalScheduled(String time) {
     return '$time · 予定';
   }
@@ -242,6 +247,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pushNotReady => 'プッシュ通知は今後のバージョンで対応します。通知設定は保存され、そのときに使われます。';
 
   @override
+  String get pushAskTitle => 'この停留所の通知を受け取りますか？';
+
+  @override
+  String get pushAskBody =>
+      'バスがあと数分で到着するときや、遅れ・運休をお知らせします。このあと、通知の許可を端末が確認します。';
+
+  @override
+  String get notNow => '後で';
+
+  @override
   String get save => '保存';
 
   @override
@@ -266,7 +281,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get calendarServiceDay => '運行日';
 
   @override
-  String get calendarNoService => '運休';
+  String get calendarNoService => '運行なし';
 
   @override
   String get calendarExtraDay => '臨時運行日';
@@ -301,7 +316,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get leaveConfirmBody => '路線と通知がこの端末から消えます。再度参加するには新しい招待コードが必要です。';
+  String get leaveConfirmBody => '路線と通知がこの端末から消えます。再度参加するには招待コードが必要です。';
 
   @override
   String get cancel => 'キャンセル';
@@ -314,7 +329,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get privacyText =>
-      'Buspilotにアカウントは必要ありません。サーバーに保存されるのは、この端末の匿名ID、言語、プッシュトークン（通知を有効にした場合）、フォローしている停留所だけです。名前・メールアドレス・電話番号・位置情報は保存しません。最後にアプリを開いてから90日後に、または下のボタンで今すぐ、すべて削除されます。';
+      'Buspilotにアカウントは必要ありません。サーバーに保存されるのは、この端末の匿名ID、言語、プッシュトークン（通知を有効にした場合）、フォローしている停留所だけです。名前・メールアドレス・電話番号・位置情報は保存しません。最後にアプリを開いてから90日後にすべて削除されます。下のボタンでバスサービス・停留所・プッシュトークンをすぐに削除できます（匿名ID自体は90日以内に削除されます）。';
 
   @override
   String get deleteData => 'データを削除';

@@ -63,7 +63,11 @@ void main() {
     await pumpUntil(tester, find.byKey(const ValueKey('stop-2')));
     await tester.tap(find.byKey(const ValueKey('stop-2')));
     await pumpUntil(tester, find.byKey(const Key('save-alert')));
-    await tester.scrollUntilVisible(find.byKey(const Key('save-alert')), 200);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('save-alert')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.byKey(const Key('save-alert')));
     await pumpUntil(tester, find.text('Stop followed'));
 

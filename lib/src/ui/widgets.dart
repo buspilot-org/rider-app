@@ -2,10 +2,12 @@ import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../config.dart';
 import '../data/api.dart';
 import '../data/arrivals.dart';
 import '../data/models.dart';
 import '../l10n/app_localizations.dart';
+import '../state/app_state.dart';
 import 'theme.dart';
 
 extension L10nContext on BuildContext {
@@ -41,7 +43,7 @@ class OperatorAvatar extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final colors = routeColors(operator?.colorHex, null, scheme);
     final name = operator?.name.resolve(context.lang) ?? '?';
-    final logo = operator?.logoUrl;
+    final logo = _allowedLogo(operator?.logoUrl);
     return CircleAvatar(
       radius: radius,
       backgroundColor: colors.background,
@@ -50,6 +52,15 @@ class OperatorAvatar extends StatelessWidget {
       child: Text(name.isEmpty ? '?' : name.characters.first),
     );
   }
+}
+
+/// Logos load only from the Buspilot backend (Supabase Storage), so riders'
+/// phones never contact a host the operator picked.
+String? _allowedLogo(String? url) {
+  if (url == null) return null;
+  final host = Uri.tryParse(url)?.host;
+  final backend = Uri.tryParse(AppConfig.supabaseUrl)?.host;
+  return host != null && backend != null && backend.isNotEmpty && host == backend ? url : null;
 }
 
 /// Short route name on the route colour.
@@ -120,34 +131,34 @@ String phaseText(BuildContext context, TripPhase phase) => switch (phase) {
   TripPhase.cancelled => context.l10n.phaseCancelled,
 };
 
-/// "As of 07:31" or "Offline · as of 07:31".
+/// "As of 07:31", or why the data is older: offline or not updated.
 class UpdatedLine extends StatelessWidget {
-  const UpdatedLine({super.key, required this.fetchedAt, required this.offline});
-
-  final DateTime? fetchedAt;
-  final bool offline;
+  const UpdatedLine({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    final fetchedAt = state.fetchedAt;
     if (fetchedAt == null) return const SizedBox.shrink();
-    final t = formatLocalTime(fetchedAt!);
+    final t = formatLocalTime(fetchedAt);
+    final stale = state.offline || state.serverError;
     final scheme = Theme.of(context).colorScheme;
+    final l = context.l10n;
+    final color = stale ? scheme.error : scheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: Row(
         children: [
-          Icon(
-            offline ? Icons.cloud_off : Icons.update,
-            size: 16,
-            color: offline ? scheme.error : scheme.onSurfaceVariant,
-          ),
+          Icon(stale ? Icons.cloud_off : Icons.update, size: 16, color: color),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              offline ? context.l10n.offlineAsOf(t) : context.l10n.asOf(t),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: offline ? scheme.error : scheme.onSurfaceVariant,
-              ),
+              state.offline
+                  ? l.offlineAsOf(t)
+                  : state.serverError
+                  ? l.notUpdatedAsOf(t)
+                  : l.asOf(t),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color),
             ),
           ),
         ],

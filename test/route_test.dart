@@ -1,6 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:buspilot_rider/src/data/models.dart';
+import 'package:buspilot_rider/src/state/app_state.dart';
+import 'package:buspilot_rider/src/ui/home_screen.dart';
+
 import 'fakes/fake_api.dart';
 import 'fakes/harness.dart';
 
@@ -88,6 +92,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Kitano-zaka'), findsOneWidget);
     expect(find.text('Follow your stop'), findsNothing);
+  });
+
+  testWidgets('a route without patterns shows no bus instead of crashing', (tester) async {
+    await pumpApp(tester, api: FakeApi(joined: true));
+    // A route an editor just created, before it has patterns.
+    final state = AppScope.read(tester.element(find.byType(HomeScreen)));
+    final json = demoCatalog();
+    (json['routes'] as List).single['trip_pattern'] = <Map<String, dynamic>>[];
+    state.catalog = Catalog(json);
+    await tester.tap(find.text('Morning route A'));
+    await tester.pumpAndSettle();
+    expect(find.text('No bus today'), findsOneWidget);
   });
 
   testWidgets('pause alerts for today', (tester) async {

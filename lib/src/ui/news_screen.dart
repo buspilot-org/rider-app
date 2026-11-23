@@ -38,7 +38,7 @@ class _NewsScreenState extends State<NewsScreen> {
         onRefresh: state.refresh,
         child: ListView(
           children: [
-            UpdatedLine(fetchedAt: state.fetchedAt, offline: state.offline),
+            const UpdatedLine(),
             if (posts.isEmpty)
               ListTile(leading: const Icon(Icons.inbox_outlined), title: Text(l.newsEmpty)),
             for (final p in posts) _PostCard(post: p),

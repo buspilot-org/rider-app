@@ -67,6 +67,19 @@ void main() {
     expect(find.text('Cancelled (07:39)'), findsOneWidget);
   });
 
+  testWidgets('after a cancelled trip\'s time, the next trip counts', (tester) async {
+    final api = FakeApi(
+      joined: true,
+      instances: [
+        instance(id: 'ti-0730', tripId: trip0730, serviceDate: '2026-11-23', status: 'cancelled'),
+      ],
+    );
+    api.subscriptions.add(_sub(3));
+    // 08:00: the 07:30 trip (07:39 at Sannomiya) is over; 08:10 is next.
+    await pumpApp(tester, api: api, now: kobe(8, 0));
+    expect(find.text('08:19 · in 19 min'), findsOneWidget);
+  });
+
   testWidgets('no bus today on a weekend', (tester) async {
     final api = FakeApi(joined: true);
     api.subscriptions.add(_sub(3));

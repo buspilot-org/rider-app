@@ -32,6 +32,8 @@
   "asOf": "Stand {time}",
   "offlineAsOf": "Offline · Stand {time}",
 
+  "notUpdatedAsOf": "Nicht aktualisiert · Stand {time}",
+
   "arrivalScheduled": "{time} · planmäßig",
   "arrivalInMinutes": "{time} · in {minutes} Min.",
   "arrivalDue": "{time} · jetzt",
@@ -73,6 +75,9 @@
   "alertPauseUntilDate": "Bis zu einem Datum …",
   "alertPausedThrough": "Pausiert bis einschließlich {date}",
   "pushNotReady": "Push-Benachrichtigungen kommen in einer späteren Version. Deine Einstellungen werden gespeichert und dann verwendet.",
+  "pushAskTitle": "Benachrichtigungen für diese Haltestelle?",
+  "pushAskBody": "Buspilot sagt dir Bescheid, wenn der Bus wenige Minuten entfernt ist, und bei Verspätungen oder Ausfällen. Als Nächstes fragt dein Telefon, ob Buspilot Benachrichtigungen senden darf.",
+  "notNow": "Später",
   "save": "Speichern",
   "unfollow": "Nicht mehr folgen",
 
@@ -95,11 +100,11 @@
   "settingsOperators": "Busdienste",
   "leave": "Verlassen",
   "leaveConfirmTitle": "{operator} verlassen?",
-  "leaveConfirmBody": "Linien und Benachrichtigungen verschwinden von diesem Telefon. Um wieder beizutreten, brauchst du einen neuen Einladungscode.",
+  "leaveConfirmBody": "Linien und Benachrichtigungen verschwinden von diesem Telefon. Um wieder beizutreten, brauchst du einen Einladungscode.",
   "cancel": "Abbrechen",
   "delete": "Löschen",
   "settingsPrivacy": "Datenschutz",
-  "privacyText": "Buspilot braucht kein Konto. Der Server speichert nur eine anonyme ID für dieses Telefon, seine Sprache, ein Push-Token (sobald Benachrichtigungen aktiv sind) und die Haltestellen, denen du folgst. Name, E-Mail, Telefonnummer oder Standort werden nie gespeichert. Alles wird 90 Tage nach der letzten Nutzung gelöscht, oder sofort mit der Schaltfläche unten.",
+  "privacyText": "Buspilot braucht kein Konto. Der Server speichert nur eine anonyme ID für dieses Telefon, seine Sprache, ein Push-Token (sobald Benachrichtigungen aktiv sind) und die Haltestellen, denen du folgst. Name, E-Mail, Telefonnummer oder Standort werden nie gespeichert. Alles wird 90 Tage nach der letzten Nutzung gelöscht. Die Schaltfläche unten löscht Busdienste, Haltestellen und Push-Token sofort; die anonyme ID selbst wird innerhalb von 90 Tagen entfernt.",
   "deleteData": "Meine Daten löschen",
   "deleteConfirmTitle": "Daten löschen?",
   "deleteConfirmBody": "Deine Busdienste, Haltestellen und Benachrichtigungseinstellungen werden vom Server und von diesem Telefon gelöscht. Zum erneuten Beitreten brauchst du wieder die Einladungscodes.",

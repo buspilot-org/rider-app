@@ -21,6 +21,9 @@ void main() {
       expect(inviteCodeFrom('https://buspilot.org/other/DEMO'), isNull);
       expect(inviteCodeFrom('WIFI:S:net;T:WPA;P:secret;;'), isNull);
       expect(inviteCodeFrom(''), isNull);
+      // A malformed %-escape must not throw.
+      expect(inviteCodeFrom('AB%ZZ-CDEFG'), isNull);
+      expect(inviteCodeFrom('https://buspilot.org/join/AB%ZZ'), isNull);
     });
   });
 

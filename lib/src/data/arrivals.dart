@@ -209,7 +209,13 @@ NextArrival nextArrival({
   );
   Visit? next;
   for (final v in visits) {
-    if (v.kind != VisitKind.passed) {
+    final at = v.scheduled ?? v.time;
+    // A cancelled trip is news until its time is over, then the next one
+    // counts.
+    final cancelledAndOver = v.kind == VisitKind.cancelled &&
+        at != null &&
+        now.isAfter(at.add(_assumePassedAfter));
+    if (v.kind != VisitKind.passed && !cancelledAndOver) {
       next = v;
       break;
     }

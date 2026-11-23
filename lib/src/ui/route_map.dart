@@ -70,7 +70,8 @@ class _RouteMapState extends State<RouteMap> {
       _data = data;
       if (first) setState(() {});
       await _draw(fit: first);
-    } on OfflineException {
+    } catch (_) {
+      // Offline or not allowed: no map.
       if (mounted && _data == null) setState(() => _failed = true);
     }
   }

@@ -80,7 +80,7 @@ flutter test integration_test -d <device> --dart-define-from-file=config/local.j
 | `lib/src/state/` | `AppState` and the on-phone store (settings, offline cache) |
 | `lib/src/ui/` | Screens: language, join and QR scan, home, route and map, alert settings, news, calendar, settings |
 | `lib/src/l10n/` | Translations (ARB, ja/en/de) and the generated localisations |
-| `lib/src/push/` | Push notification interface (FCM comes later) |
+| `lib/src/push/` | Push token registration: FCM on Android (`FcmPushService`), nothing elsewhere (`NoPushService`) |
 | `tool/` | Development scripts |
 
 **State management:** one `ChangeNotifier` (`AppState`) provided through an
@@ -93,6 +93,13 @@ reads whole tables (`route` with patterns, stops and trips, `service_calendar`,
 `post`, …) and caches the JSON for offline use. Live state (`trip_instance`,
 `stop_event`) is polled every 30 seconds while a screen is open; Realtime comes
 later. Stop locations come only from the `stop_location` view.
+
+**Push:** Android uses Firebase project `buspilot-84a51` (`android/app/google-services.json`,
+`lib/firebase_options.dart`: public identifiers). After the user follows a stop
+and agrees, the app asks for notification permission and stores its Firebase
+Installation ID (firebase_messaging 17 `register()` / `onRegistered`) in
+`device.push_token`; the engine sends to it. Without Firebase (iOS for now, or
+if it fails to start) the app works without push.
 
 ## Contributing
 

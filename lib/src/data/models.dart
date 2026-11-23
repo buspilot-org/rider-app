@@ -443,3 +443,53 @@ class Catalog {
     return calendars.where((c) => ids.contains(c.id)).toList();
   }
 }
+
+/// Narrows what RLS returns to what this device has joined.
+///
+/// RLS also returns every operator's public routes and their general posts
+/// to everyone. The app shows only operators the device is a member of, plus
+/// routes it follows a stop on (public routes followed from a link).
+Json visibleCatalog(Json raw) {
+  List<Json> list(String key) => [
+    for (final e in (raw[key] as List? ?? const [])) (e as Map).cast<String, dynamic>(),
+  ];
+  final members = {
+    for (final m in list('memberships'))
+      if (m['revoked_at'] == null) m['operator_id'] as String,
+  };
+  final followedPatterns = {
+    for (final s in list('subscriptions')) s['pattern_id'] as String,
+  };
+  final routes = [
+    for (final r in list('routes'))
+      if (members.contains(r['operator_id']) ||
+          (r['trip_pattern'] as List? ?? const [])
+              .any((p) => followedPatterns.contains((p as Map)['id'])))
+        r,
+  ];
+  final routeIds = {for (final r in routes) r['id'] as String};
+  final operatorIds = {...members, for (final r in routes) r['operator_id'] as String};
+  final calendarIds = {
+    for (final r in routes)
+      for (final p in (r['trip_pattern'] as List? ?? const []))
+        for (final t in ((p as Map)['trip'] as List? ?? const []))
+          (t as Map)['service_calendar_id'] as String,
+  };
+  return {
+    ...raw,
+    'operators': [
+      for (final o in list('operators'))
+        if (operatorIds.contains(o['id'])) o,
+    ],
+    'routes': routes,
+    'calendars': [
+      for (final c in list('calendars'))
+        if (calendarIds.contains(c['id'])) c,
+    ],
+    // General posts for members; route posts for routes shown.
+    'posts': [
+      for (final p in list('posts'))
+        if (members.contains(p['operator_id']) || routeIds.contains(p['route_id'])) p,
+    ],
+  };
+}

@@ -123,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 88),
           children: [
-            UpdatedLine(fetchedAt: state.fetchedAt, offline: state.offline),
+            const UpdatedLine(),
             if (!hasRoutes) const _EmptyState(),
             if (hasRoutes) ...[
               _Header(l.myStops),

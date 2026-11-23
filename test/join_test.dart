@@ -60,6 +60,10 @@ void main() {
 
     links.add(Uri.parse('https://buspilot.org/join/DEMO-KOBE-2026'));
     await tester.pumpAndSettle();
+    // The link fills in the code; joining needs a tap.
+    expect(find.text('DEMO-KOBE-2026'), findsOneWidget);
+    expect(api.calls.where((c) => c.startsWith('redeem')), isEmpty);
+    await tester.tap(find.byKey(const Key('join-button')));
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.pumpAndSettle();
 
@@ -67,6 +71,48 @@ void main() {
     expect(state.catalog.memberOperatorIds, {opId});
     expect(find.text('Morning route A'), findsOneWidget);
     await links.close();
+  });
+
+  testWidgets('an invite link opened on first start waits for the language', (tester) async {
+    final api = FakeApi();
+    final links = StreamController<Uri>();
+    await pumpApp(tester, api: api, onboarded: false, language: null, links: links.stream);
+    links.add(Uri.parse('https://buspilot.org/join/DEMO-KOBE-2026'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose your language'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('language-continue')));
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pumpAndSettle();
+    expect(find.text('DEMO-KOBE-2026'), findsOneWidget);
+    expect(find.byKey(const Key('join-button')), findsOneWidget);
+    await links.close();
+  });
+
+  testWidgets('other operators\' public routes and posts stay hidden', (tester) async {
+    final api = FakeApi(joined: true)..withForeignPublicRoute = true;
+    final state = await pumpApp(tester, api: api);
+    expect(find.text('Morning route A'), findsOneWidget);
+    expect(find.text('Hotel shuttle'), findsNothing);
+    expect(state.catalog.posts.map((p) => p.id), ['p1']);
+
+    // Not a member of anything: the join prompt, not the hotel's route.
+    final visitor = FakeApi()..withForeignPublicRoute = true;
+    await pumpApp(tester, api: visitor);
+    expect(find.text('No bus services yet'), findsOneWidget);
+  });
+
+  testWidgets('server error on start: cache if any, else retry screen', (tester) async {
+    final api = FakeApi(joined: true)..serverError = StateError('503');
+    await pumpApp(tester, api: api);
+    expect(find.text('Try again'), findsOneWidget);
+
+    final store = await freshStore();
+    await pumpApp(tester, api: FakeApi(joined: true), store: store);
+    final failing = FakeApi(joined: true)..serverError = StateError('503');
+    await pumpApp(tester, api: failing, store: store);
+    expect(find.text('Morning route A'), findsOneWidget);
+    expect(find.textContaining('Not updated · as of'), findsOneWidget);
   });
 
   testWidgets('leave an operator from settings', (tester) async {

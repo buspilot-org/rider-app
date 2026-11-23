@@ -32,6 +32,8 @@
   "asOf": "{time} 時点",
   "offlineAsOf": "オフライン · {time} 時点",
 
+  "notUpdatedAsOf": "更新できません · {time} 時点",
+
   "arrivalScheduled": "{time} · 予定",
   "arrivalInMinutes": "{time} · あと{minutes}分",
   "arrivalDue": "{time} · まもなく",
@@ -73,6 +75,9 @@
   "alertPauseUntilDate": "日付を指定…",
   "alertPausedThrough": "{date} まで停止中",
   "pushNotReady": "プッシュ通知は今後のバージョンで対応します。通知設定は保存され、そのときに使われます。",
+  "pushAskTitle": "この停留所の通知を受け取りますか？",
+  "pushAskBody": "バスがあと数分で到着するときや、遅れ・運休をお知らせします。このあと、通知の許可を端末が確認します。",
+  "notNow": "後で",
   "save": "保存",
   "unfollow": "フォローをやめる",
 
@@ -83,7 +88,7 @@
 
   "calendarTitle": "運行カレンダー",
   "calendarServiceDay": "運行日",
-  "calendarNoService": "運休",
+  "calendarNoService": "運行なし",
   "calendarExtraDay": "臨時運行日",
   "calendarChanges": "変更",
   "calendarHolidaysNote": "祝日はまだ表示されません。祝日は通常運休です。",
@@ -95,11 +100,11 @@
   "settingsOperators": "バスサービス",
   "leave": "退出",
   "leaveConfirmTitle": "{operator} から退出しますか？",
-  "leaveConfirmBody": "路線と通知がこの端末から消えます。再度参加するには新しい招待コードが必要です。",
+  "leaveConfirmBody": "路線と通知がこの端末から消えます。再度参加するには招待コードが必要です。",
   "cancel": "キャンセル",
   "delete": "削除",
   "settingsPrivacy": "プライバシー",
-  "privacyText": "Buspilotにアカウントは必要ありません。サーバーに保存されるのは、この端末の匿名ID、言語、プッシュトークン（通知を有効にした場合）、フォローしている停留所だけです。名前・メールアドレス・電話番号・位置情報は保存しません。最後にアプリを開いてから90日後に、または下のボタンで今すぐ、すべて削除されます。",
+  "privacyText": "Buspilotにアカウントは必要ありません。サーバーに保存されるのは、この端末の匿名ID、言語、プッシュトークン（通知を有効にした場合）、フォローしている停留所だけです。名前・メールアドレス・電話番号・位置情報は保存しません。最後にアプリを開いてから90日後にすべて削除されます。下のボタンでバスサービス・停留所・プッシュトークンをすぐに削除できます（匿名ID自体は90日以内に削除されます）。",
   "deleteData": "データを削除",
   "deleteConfirmTitle": "データを削除しますか？",
   "deleteConfirmBody": "バスサービス、フォロー中の停留所、通知設定をサーバーとこの端末から削除します。再度参加するには招待コードが必要です。",

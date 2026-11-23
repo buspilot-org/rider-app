@@ -268,6 +268,12 @@ abstract class AppLocalizations {
   /// **'Offline · as of {time}'**
   String offlineAsOf(String time);
 
+  /// No description provided for @notUpdatedAsOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Not updated · as of {time}'**
+  String notUpdatedAsOf(String time);
+
   /// No description provided for @arrivalScheduled.
   ///
   /// In en, this message translates to:
@@ -496,6 +502,24 @@ abstract class AppLocalizations {
   /// **'Push notifications come in a later version. Your alert settings are saved and will be used then.'**
   String get pushNotReady;
 
+  /// No description provided for @pushAskTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get alerts for this stop?'**
+  String get pushAskTitle;
+
+  /// No description provided for @pushAskBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Buspilot can tell you when the bus is a few minutes away, and about delays and cancellations. Your phone asks next whether Buspilot may send notifications.'**
+  String get pushAskBody;
+
+  /// No description provided for @notNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get notNow;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:
@@ -613,7 +637,7 @@ abstract class AppLocalizations {
   /// No description provided for @leaveConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'Its routes and alerts disappear from this phone. To join again you need a new invite code.'**
+  /// **'Its routes and alerts disappear from this phone. To join again you need an invite code.'**
   String get leaveConfirmBody;
 
   /// No description provided for @cancel.
@@ -637,7 +661,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyText.
   ///
   /// In en, this message translates to:
-  /// **'Buspilot needs no account. The server stores only an anonymous ID for this phone, its language, a push token (once notifications are on) and the stops you follow. It never stores your name, email, phone number or location. Everything is deleted 90 days after you last opened the app, or now with the button below.'**
+  /// **'Buspilot needs no account. The server stores only an anonymous ID for this phone, its language, a push token (once notifications are on) and the stops you follow. It never stores your name, email, phone number or location. Everything is deleted 90 days after you last opened the app. The button below deletes your bus services, stops and push token right away; the anonymous ID itself is removed within 90 days.'**
   String get privacyText;
 
   /// No description provided for @deleteData.

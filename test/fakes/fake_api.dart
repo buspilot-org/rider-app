@@ -147,9 +147,16 @@ class FakeApi implements BuspilotApi {
   String? deviceLanguage;
   bool deviceDeleted = false;
 
+  /// Thrown by every call, like a server error (not offline).
+  Object? serverError;
+
   void _check() {
     if (offline) throw const OfflineException('fake offline');
+    if (serverError != null) throw serverError!;
   }
+
+  /// Extra rows RLS would return: another operator's public route and post.
+  bool withForeignPublicRoute = false;
 
   @override
   Future<String> ensureSignedIn() async {
@@ -194,7 +201,31 @@ class FakeApi implements BuspilotApi {
         'posts': <Json>[],
       };
     }
-    return demoCatalog(subscriptions: List.of(subscriptions));
+    final json = demoCatalog(subscriptions: List.of(subscriptions));
+    if (withForeignPublicRoute) {
+      (json['operators'] as List).add({
+        'id': 'hotel',
+        'name': {'en': 'Harbour Hotel'},
+        'timezone': 'Asia/Tokyo',
+        'default_visibility': 'public',
+      });
+      (json['routes'] as List).add({
+        'id': 'shuttle',
+        'operator_id': 'hotel',
+        'name': {'en': 'Hotel shuttle'},
+        'visibility': 'public',
+        'trip_pattern': <Json>[],
+      });
+      (json['posts'] as List).add({
+        'id': 'p-hotel',
+        'operator_id': 'hotel',
+        'route_id': null,
+        'title': {'en': 'Hotel news'},
+        'body': {'en': 'Spa closed'},
+        'published_at': '2026-11-22T00:00:00Z',
+      });
+    }
+    return json;
   }
 
   @override

@@ -1,12 +1,18 @@
 /// Push notifications. The engine sends them through FCM (APNs through FCM on
 /// iOS); the app only registers its token in `device.push_token`.
 ///
-/// The FCM implementation (firebase_messaging) needs a Firebase project and
-/// is a follow-up. Until then [NoPushService] is used and no token is stored.
+/// [FcmPushService] on Android; [NoPushService] where Firebase is not
+/// configured (iOS for now) or fails to start, so no token is stored.
 abstract class PushService {
+  /// Whether push works in this build (Firebase configured and started).
+  bool get available;
+
   /// Asks the user for permission to show notifications. Called after the
   /// user follows a stop, never on first start.
   Future<bool> requestPermission();
+
+  /// Whether notifications are already allowed (no need to ask).
+  Future<bool> isAllowed();
 
   /// The current token, or null when push is not available.
   Future<String?> token();
@@ -19,7 +25,13 @@ class NoPushService implements PushService {
   const NoPushService();
 
   @override
+  bool get available => false;
+
+  @override
   Future<bool> requestPermission() async => false;
+
+  @override
+  Future<bool> isAllowed() async => false;
 
   @override
   Future<String?> token() async => null;

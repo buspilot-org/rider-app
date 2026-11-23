@@ -108,6 +108,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String notUpdatedAsOf(String time) {
+    return 'Not updated · as of $time';
+  }
+
+  @override
   String arrivalScheduled(String time) {
     return '$time · scheduled';
   }
@@ -254,6 +259,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Push notifications come in a later version. Your alert settings are saved and will be used then.';
 
   @override
+  String get pushAskTitle => 'Get alerts for this stop?';
+
+  @override
+  String get pushAskBody =>
+      'Buspilot can tell you when the bus is a few minutes away, and about delays and cancellations. Your phone asks next whether Buspilot may send notifications.';
+
+  @override
+  String get notNow => 'Not now';
+
+  @override
   String get save => 'Save';
 
   @override
@@ -315,7 +330,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get leaveConfirmBody =>
-      'Its routes and alerts disappear from this phone. To join again you need a new invite code.';
+      'Its routes and alerts disappear from this phone. To join again you need an invite code.';
 
   @override
   String get cancel => 'Cancel';
@@ -328,7 +343,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyText =>
-      'Buspilot needs no account. The server stores only an anonymous ID for this phone, its language, a push token (once notifications are on) and the stops you follow. It never stores your name, email, phone number or location. Everything is deleted 90 days after you last opened the app, or now with the button below.';
+      'Buspilot needs no account. The server stores only an anonymous ID for this phone, its language, a push token (once notifications are on) and the stops you follow. It never stores your name, email, phone number or location. Everything is deleted 90 days after you last opened the app. The button below deletes your bus services, stops and push token right away; the anonymous ID itself is removed within 90 days.';
 
   @override
   String get deleteData => 'Delete my data';

@@ -10,7 +10,8 @@ import 'widgets.dart';
 class JoinScreen extends StatefulWidget {
   const JoinScreen({super.key, this.initialCode});
 
-  /// From an invite link; redeemed right away.
+  /// From an invite link or QR code. Shown for the user to confirm with
+  /// Join: a link alone never joins an operator.
   final String? initialCode;
 
   @override
@@ -21,14 +22,6 @@ class _JoinScreenState extends State<JoinScreen> {
   late final _controller = TextEditingController(text: widget.initialCode ?? '');
   bool _busy = false;
   String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.initialCode != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _redeem());
-    }
-  }
 
   @override
   void dispose() {

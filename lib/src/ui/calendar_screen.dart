@@ -17,10 +17,13 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   late DateTime _month;
   String? _routeId;
+  bool _init = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_init) return;
+    _init = true;
     final state = AppScope.read(context);
     final now = state.clock();
     _month = DateTime.utc(now.year, now.month);

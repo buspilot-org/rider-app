@@ -4,6 +4,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../data/arrivals.dart';
 import '../data/models.dart';
 import '../state/app_state.dart';
+import 'stop_mini_map.dart';
 import 'widgets.dart';
 
 /// Follow a stop and set its alerts (`subscription`).
@@ -103,6 +104,24 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
     final l = context.l10n;
     try {
       final isNew = await state.saveSubscription(_withPause());
+      final ask = isNew && state.push.available && !await state.push.isAllowed();
+      if (!mounted) return;
+      if (ask) {
+        // Say why before the system asks (concept: rider-app.md).
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (c) => AlertDialog(
+            icon: const Icon(Icons.notifications_active_outlined),
+            title: Text(l.pushAskTitle),
+            content: Text(l.pushAskBody),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c, false), child: Text(l.notNow)),
+              FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(l.continueButton)),
+            ],
+          ),
+        );
+        if (ok == true) await state.enablePush();
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(isNew ? l.followSaved : l.alertSaved)),
@@ -151,6 +170,9 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
               title: Text(found.$1.name.resolve(context.lang)),
               subtitle: Text(found.$2.name),
             ),
+          // Only this stop; hidden when the server does not return its
+          // location.
+          if (stop != null) StopMiniMap(stopId: stop.stopId),
           const Divider(),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -229,10 +251,11 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
             ),
           ),
           const Divider(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Text(l.pushNotReady, style: theme.textTheme.bodySmall),
-          ),
+          if (!state.push.available)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Text(l.pushNotReady, style: theme.textTheme.bodySmall),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: FilledButton(

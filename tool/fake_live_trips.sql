@@ -16,6 +16,18 @@
 
 begin;
 
+-- Only a database with the demo seed: refuse anything else, even when it is
+-- reachable on 127.0.0.1 (a tunnel to a shared database, say).
+do $$
+begin
+  if not exists (select 1 from public.operator
+                  where id = 'd0000000-0000-4000-8000-000000000001' and slug = 'demo-kobe' and plan = 'demo')
+     or (select count(*) from public.operator) > 5 then
+    raise exception 'not the local demo database: refusing to write fake data';
+  end if;
+end;
+$$;
+
 create temporary table dev_now on commit drop as
 select
   (now() at time zone 'Asia/Tokyo')::date as today,

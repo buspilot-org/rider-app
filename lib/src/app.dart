@@ -29,6 +29,8 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
   final _navigator = GlobalKey<NavigatorState>();
   StreamSubscription<Uri>? _linkSub;
   String? _pendingCode;
+  String? _lastCode;
+  Uri? _lastUri;
 
   AppState get state => widget.state;
 
@@ -55,7 +57,10 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
 
   void _onLink(Uri uri) {
     final code = inviteCodeFrom(uri.toString());
-    if (code == null) return;
+    // uriLinkStream may repeat the initial link.
+    if (code == null || (code == _lastCode && uri == _lastUri)) return;
+    _lastCode = code;
+    _lastUri = uri;
     _pendingCode = code;
     _maybeOpenPending();
   }
@@ -67,7 +72,13 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
     final nav = _navigator.currentState;
     if (code == null || nav == null || state.startup != StartupState.ready) return;
     _pendingCode = null;
-    nav.push(MaterialPageRoute(builder: (_) => JoinScreen(initialCode: code)));
+    // After the frame that shows home, so the join screen lands on top.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigator.currentState?.push(
+        MaterialPageRoute(builder: (_) => JoinScreen(initialCode: code)),
+      );
+    });
+    WidgetsBinding.instance.scheduleFrame();
   }
 
   @override
@@ -101,17 +112,27 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
               }
               return const Locale('en');
             },
-            home: switch (state.startup) {
-              StartupState.loading => const _Splash(),
-              StartupState.chooseLanguage => const LanguageScreen(onboarding: true),
-              StartupState.offlineNoData => const _OfflineStart(),
-              StartupState.ready => const HomeScreen(),
-            },
+            // One root route that switches its content: replacing `home`
+            // would reset the navigator and drop a join screen opened from
+            // an invite link meanwhile.
+            home: const _Root(),
           );
         },
       ),
     );
   }
+}
+
+class _Root extends StatelessWidget {
+  const _Root();
+
+  @override
+  Widget build(BuildContext context) => switch (AppScope.of(context).startup) {
+    StartupState.loading => const _Splash(),
+    StartupState.chooseLanguage => const LanguageScreen(onboarding: true),
+    StartupState.offlineNoData => const _OfflineStart(),
+    StartupState.ready => const HomeScreen(),
+  };
 }
 
 class _Splash extends StatelessWidget {

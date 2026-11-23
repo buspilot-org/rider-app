@@ -111,6 +111,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String notUpdatedAsOf(String time) {
+    return 'Nicht aktualisiert · Stand $time';
+  }
+
+  @override
   String arrivalScheduled(String time) {
     return '$time · planmäßig';
   }
@@ -257,6 +262,16 @@ class AppLocalizationsDe extends AppLocalizations {
       'Push-Benachrichtigungen kommen in einer späteren Version. Deine Einstellungen werden gespeichert und dann verwendet.';
 
   @override
+  String get pushAskTitle => 'Benachrichtigungen für diese Haltestelle?';
+
+  @override
+  String get pushAskBody =>
+      'Buspilot sagt dir Bescheid, wenn der Bus wenige Minuten entfernt ist, und bei Verspätungen oder Ausfällen. Als Nächstes fragt dein Telefon, ob Buspilot Benachrichtigungen senden darf.';
+
+  @override
+  String get notNow => 'Später';
+
+  @override
   String get save => 'Speichern';
 
   @override
@@ -318,7 +333,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get leaveConfirmBody =>
-      'Linien und Benachrichtigungen verschwinden von diesem Telefon. Um wieder beizutreten, brauchst du einen neuen Einladungscode.';
+      'Linien und Benachrichtigungen verschwinden von diesem Telefon. Um wieder beizutreten, brauchst du einen Einladungscode.';
 
   @override
   String get cancel => 'Abbrechen';
@@ -331,7 +346,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get privacyText =>
-      'Buspilot braucht kein Konto. Der Server speichert nur eine anonyme ID für dieses Telefon, seine Sprache, ein Push-Token (sobald Benachrichtigungen aktiv sind) und die Haltestellen, denen du folgst. Name, E-Mail, Telefonnummer oder Standort werden nie gespeichert. Alles wird 90 Tage nach der letzten Nutzung gelöscht, oder sofort mit der Schaltfläche unten.';
+      'Buspilot braucht kein Konto. Der Server speichert nur eine anonyme ID für dieses Telefon, seine Sprache, ein Push-Token (sobald Benachrichtigungen aktiv sind) und die Haltestellen, denen du folgst. Name, E-Mail, Telefonnummer oder Standort werden nie gespeichert. Alles wird 90 Tage nach der letzten Nutzung gelöscht. Die Schaltfläche unten löscht Busdienste, Haltestellen und Push-Token sofort; die anonyme ID selbst wird innerhalb von 90 Tagen entfernt.';
 
   @override
   String get deleteData => 'Meine Daten löschen';

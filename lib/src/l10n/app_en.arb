@@ -37,6 +37,9 @@
   "offlineAsOf": "Offline · as of {time}",
   "@offlineAsOf": {"placeholders": {"time": {"type": "String"}}},
 
+  "notUpdatedAsOf": "Not updated · as of {time}",
+  "@notUpdatedAsOf": {"placeholders": {"time": {"type": "String"}}},
+
   "arrivalScheduled": "{time} · scheduled",
   "@arrivalScheduled": {"placeholders": {"time": {"type": "String"}}},
   "arrivalInMinutes": "{time} · in {minutes} min",
@@ -90,6 +93,9 @@
   "alertPausedThrough": "Paused through {date}",
   "@alertPausedThrough": {"placeholders": {"date": {"type": "String"}}},
   "pushNotReady": "Push notifications come in a later version. Your alert settings are saved and will be used then.",
+  "pushAskTitle": "Get alerts for this stop?",
+  "pushAskBody": "Buspilot can tell you when the bus is a few minutes away, and about delays and cancellations. Your phone asks next whether Buspilot may send notifications.",
+  "notNow": "Not now",
   "save": "Save",
   "unfollow": "Stop following",
 
@@ -113,11 +119,11 @@
   "leave": "Leave",
   "leaveConfirmTitle": "Leave {operator}?",
   "@leaveConfirmTitle": {"placeholders": {"operator": {"type": "String"}}},
-  "leaveConfirmBody": "Its routes and alerts disappear from this phone. To join again you need a new invite code.",
+  "leaveConfirmBody": "Its routes and alerts disappear from this phone. To join again you need an invite code.",
   "cancel": "Cancel",
   "delete": "Delete",
   "settingsPrivacy": "Privacy",
-  "privacyText": "Buspilot needs no account. The server stores only an anonymous ID for this phone, its language, a push token (once notifications are on) and the stops you follow. It never stores your name, email, phone number or location. Everything is deleted 90 days after you last opened the app, or now with the button below.",
+  "privacyText": "Buspilot needs no account. The server stores only an anonymous ID for this phone, its language, a push token (once notifications are on) and the stops you follow. It never stores your name, email, phone number or location. Everything is deleted 90 days after you last opened the app. The button below deletes your bus services, stops and push token right away; the anonymous ID itself is removed within 90 days.",
   "deleteData": "Delete my data",
   "deleteConfirmTitle": "Delete your data?",
   "deleteConfirmBody": "This removes your bus services, followed stops and alert settings from the server and from this phone. You will need the invite codes again to rejoin.",
