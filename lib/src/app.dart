@@ -90,6 +90,8 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
   /// The system shows nothing while the app is in the foreground: show the
   /// server's text in a snack bar with a button to the stop, and refresh.
   void _onForegroundAlert(PushAlert alert) {
+    // Not before start or after "delete my data" (signed out).
+    if (state.startup != StartupState.ready) return;
     unawaited(state.refresh());
     final context = _navigator.currentContext;
     final messenger = _messenger.currentState;

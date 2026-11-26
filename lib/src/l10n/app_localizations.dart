@@ -787,13 +787,13 @@ abstract class AppLocalizations {
   /// No description provided for @miniMapFollowHint.
   ///
   /// In en, this message translates to:
-  /// **'Follow this stop to see it on a small map.'**
+  /// **'Stops you follow can show on a small map, at most two per bus service.'**
   String get miniMapFollowHint;
 
   /// No description provided for @miniMapLimit.
   ///
   /// In en, this message translates to:
-  /// **'No map for this stop: the map shows only the first two stops you follow per bus service.'**
+  /// **'No map for this stop. A small map shows at most two stops you follow per bus service; a place stays taken for 30 days after you unfollow a stop.'**
   String get miniMapLimit;
 
   /// No description provided for @liveTripsHeader.
@@ -813,6 +813,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Next: {stop}'**
   String liveTripNextStop(String stop);
+
+  /// No description provided for @liveTripNoAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts for extra trips are not sent yet. The stop shows on your home screen with its arrival time.'**
+  String get liveTripNoAlerts;
 
   /// No description provided for @liveTripGone.
   ///

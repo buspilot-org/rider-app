@@ -82,10 +82,18 @@ abstract class BuspilotApi implements LiveSource {
   Future<RedeemResult> redeemInviteCode(String code);
 
   /// Operators, the device's routes (`rpc/my_routes`) with patterns, stops
-  /// and trips, calendars with their service days and the national holidays
-  /// from [from] to [to] (at most 400 days), memberships, subscriptions and
-  /// posts, as raw JSON for [Catalog].
-  Future<Json> fetchCatalog({required DateTime from, required DateTime to});
+  /// and trips, calendars, memberships, subscriptions and posts, as raw JSON
+  /// for [Catalog].
+  Future<Json> fetchCatalog();
+
+  /// Service days of [operatorIds]' calendars (`rpc/service_days`, national
+  /// holidays applied) and the national holidays from [from] to [to] (at
+  /// most 400 days): `{"service_days": [...], "holidays": [...]}`.
+  Future<Json> fetchServiceDays({
+    required List<String> operatorIds,
+    required DateTime from,
+    required DateTime to,
+  });
 
   /// Map geometry of a pattern (only returned at map level).
   Future<MapData> fetchMapData({

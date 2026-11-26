@@ -148,8 +148,6 @@ class _PostCard extends StatelessWidget {
                   ),
                 ),
                 if (route != null) ...[RouteBadge(route: route), const SizedBox(width: 8)],
-                CategoryChip(category: p.category),
-                const SizedBox(width: 8),
                 Text(
                   DateFormat.MMMd(lang).add_Hm().format(p.publishedAt.toLocal()),
                   style: theme.textTheme.bodySmall,
@@ -157,6 +155,8 @@ class _PostCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
+            CategoryChip(category: p.category),
+            const SizedBox(height: 4),
             Text(p.title.resolve(lang), style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(p.body.resolve(lang)),

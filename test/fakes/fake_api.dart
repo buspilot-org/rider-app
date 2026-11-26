@@ -262,11 +262,11 @@ class FakeApi implements BuspilotApi {
   }
 
   DateTime? catalogFrom;
+  int serviceDaysCalls = 0;
 
   @override
-  Future<Json> fetchCatalog({required DateTime from, required DateTime to}) async {
+  Future<Json> fetchCatalog() async {
     catalogCalls++;
-    catalogFrom = from;
     await catalogGate?.future;
     _check();
     calls.add('catalog');
@@ -288,12 +288,23 @@ class FakeApi implements BuspilotApi {
         'skip_national_holidays': false,
       });
     }
-    // rpc/service_days for the operators of the device's routes, and
-    // national_holiday, as the server computes them.
-    final routeOps = {for (final r in json['routes'] as List) (r as Map)['operator_id']};
+    return json;
+  }
+
+  /// rpc/service_days and national_holiday, as the server computes them.
+  @override
+  Future<Json> fetchServiceDays({
+    required List<String> operatorIds,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    _check();
+    serviceDaysCalls++;
+    catalogFrom = from;
+    final json = demoCatalog(subscriptions: List.of(subscriptions), member: _member);
     final serviceDays = <Json>[];
     for (final c in (json['calendars'] as List).cast<Json>()) {
-      if (!routeOps.contains(c['operator_id'])) continue;
+      if (!operatorIds.contains(c['operator_id'])) continue;
       final cal = ServiceCalendar(c);
       for (var d = from; !d.isAfter(to); d = d.add(const Duration(days: 1))) {
         final key = formatDate(d);
@@ -304,15 +315,14 @@ class FakeApi implements BuspilotApi {
         }
       }
     }
-    json['service_days'] = serviceDays;
-    json['service_days_from'] = formatDate(from);
-    json['service_days_to'] = formatDate(to);
-    json['holidays'] = [
-      for (final e in holidays.entries)
-        if (!parseDate(e.key).isBefore(from) && !parseDate(e.key).isAfter(to))
-          {'date': e.key, 'name': e.value},
-    ];
-    return json;
+    return {
+      'service_days': serviceDays,
+      'holidays': [
+        for (final e in holidays.entries)
+          if (!parseDate(e.key).isBefore(from) && !parseDate(e.key).isAfter(to))
+            {'date': e.key, 'name': e.value},
+      ],
+    };
   }
 
   @override

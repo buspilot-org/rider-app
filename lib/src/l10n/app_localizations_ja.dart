@@ -395,11 +395,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get calendarHolidaysHeader => '祝日';
 
   @override
-  String get miniMapFollowHint => 'この停留所をフォローすると、小さな地図で場所を確認できます。';
+  String get miniMapFollowHint => 'フォローした停留所は小さな地図に表示されます（バスサービスごとに2つまで）。';
 
   @override
   String get miniMapLimit =>
-      'この停留所の地図はありません。地図に表示されるのは、バスサービスごとに最初にフォローした2つの停留所だけです。';
+      'この停留所の地図はありません。地図に表示されるのは、バスサービスごとにフォローした停留所2つまでです。フォローを解除しても、その枠は30日間使われたままになります。';
 
   @override
   String get liveTripsHeader => '臨時便';
@@ -413,6 +413,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String liveTripNextStop(String stop) {
     return '次: $stop';
   }
+
+  @override
+  String get liveTripNoAlerts => '臨時便の通知はまだ送信されません。停留所はホーム画面に到着時刻とともに表示されます。';
 
   @override
   String get liveTripGone => 'この便の表示は終了しました。';

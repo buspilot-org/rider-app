@@ -417,11 +417,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarHolidaysHeader => 'National holidays';
 
   @override
-  String get miniMapFollowHint => 'Follow this stop to see it on a small map.';
+  String get miniMapFollowHint =>
+      'Stops you follow can show on a small map, at most two per bus service.';
 
   @override
   String get miniMapLimit =>
-      'No map for this stop: the map shows only the first two stops you follow per bus service.';
+      'No map for this stop. A small map shows at most two stops you follow per bus service; a place stays taken for 30 days after you unfollow a stop.';
 
   @override
   String get liveTripsHeader => 'Extra trips';
@@ -435,6 +436,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String liveTripNextStop(String stop) {
     return 'Next: $stop';
   }
+
+  @override
+  String get liveTripNoAlerts =>
+      'Alerts for extra trips are not sent yet. The stop shows on your home screen with its arrival time.';
 
   @override
   String get liveTripGone => 'This trip is no longer shown.';

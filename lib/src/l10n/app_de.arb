@@ -127,10 +127,11 @@
   "newsCategoriesNote": "Wähle, welche Mitteilungen angezeigt werden. Das gilt nur für die Liste auf diesem Telefon.",
   "newsHidden": "{count, plural, =1{1 Mitteilung ausgeblendet} other{{count} Mitteilungen ausgeblendet}}",
   "calendarHolidaysHeader": "Feiertage",
-  "miniMapFollowHint": "Folge dieser Haltestelle, um sie auf einer kleinen Karte zu sehen.",
-  "miniMapLimit": "Keine Karte für diese Haltestelle: Die Karte zeigt nur die ersten zwei Haltestellen, denen du je Busdienst folgst.",
+  "miniMapFollowHint": "Haltestellen, denen du folgst, können auf einer kleinen Karte erscheinen, höchstens zwei je Busdienst.",
+  "miniMapLimit": "Keine Karte für diese Haltestelle. Die kleine Karte zeigt höchstens zwei Haltestellen je Busdienst, denen du folgst; nach dem Entfolgen bleibt ein Platz 30 Tage belegt.",
   "liveTripsHeader": "Sonderfahrten",
   "liveTripVisibleUntil": "Sichtbar bis {time}",
   "liveTripNextStop": "Als Nächstes: {stop}",
+  "liveTripNoAlerts": "Für Sonderfahrten werden noch keine Benachrichtigungen gesendet. Die Haltestelle erscheint mit ihrer Ankunftszeit auf dem Startbildschirm.",
   "liveTripGone": "Diese Fahrt wird nicht mehr angezeigt."
 }

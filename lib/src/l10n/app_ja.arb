@@ -127,10 +127,11 @@
   "newsCategoriesNote": "表示するお知らせを選びます。この端末の一覧にのみ反映されます。",
   "newsHidden": "{count}件のお知らせを非表示中",
   "calendarHolidaysHeader": "祝日",
-  "miniMapFollowHint": "この停留所をフォローすると、小さな地図で場所を確認できます。",
-  "miniMapLimit": "この停留所の地図はありません。地図に表示されるのは、バスサービスごとに最初にフォローした2つの停留所だけです。",
+  "miniMapFollowHint": "フォローした停留所は小さな地図に表示されます（バスサービスごとに2つまで）。",
+  "miniMapLimit": "この停留所の地図はありません。地図に表示されるのは、バスサービスごとにフォローした停留所2つまでです。フォローを解除しても、その枠は30日間使われたままになります。",
   "liveTripsHeader": "臨時便",
   "liveTripVisibleUntil": "{time}まで表示",
   "liveTripNextStop": "次: {stop}",
+  "liveTripNoAlerts": "臨時便の通知はまだ送信されません。停留所はホーム画面に到着時刻とともに表示されます。",
   "liveTripGone": "この便の表示は終了しました。"
 }

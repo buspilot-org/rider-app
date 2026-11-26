@@ -237,8 +237,8 @@ class AppState extends ChangeNotifier {
     refreshing = true;
     notifyListeners();
     try {
-      final (from, to) = serviceDaysRange(clock());
-      final catalogJson = visibleCatalog(await api.fetchCatalog(from: from, to: to));
+      final catalogJson = visibleCatalog(await api.fetchCatalog());
+      catalogJson.addAll(await _serviceDays(catalogJson));
       final next = Catalog(catalogJson);
       final dates = {
         for (final op in next.operators)
@@ -282,6 +282,41 @@ class AppState extends ChangeNotifier {
       refreshing = false;
       notifyListeners();
     }
+  }
+
+  /// Service days change rarely: reuse the last ones for the same range and
+  /// operators for [_serviceDaysMaxAge], instead of loading 13 months of
+  /// days with every 30-second poll.
+  static const _serviceDaysMaxAge = Duration(hours: 6);
+
+  Future<Json> _serviceDays(Json catalogJson) async {
+    final (from, to) = serviceDaysRange(clock());
+    final operators = {
+      for (final r in (catalogJson['routes'] as List? ?? const []))
+        (r as Map)['operator_id'] as String,
+    }.toList()..sort();
+    final old = catalog.json;
+    final at = DateTime.tryParse(old['service_days_at'] as String? ?? '');
+    if (at != null &&
+        clock().difference(at) < _serviceDaysMaxAge &&
+        !clock().isBefore(at) &&
+        old['service_days_from'] == formatDate(from) &&
+        (old['service_days_operators'] as List?)?.join(',') == operators.join(',')) {
+      return {
+        for (final k in ['service_days', 'holidays', 'service_days_from', 'service_days_to',
+            'service_days_operators', 'service_days_at'])
+          k: old[k],
+      };
+    }
+    final days = await api.fetchServiceDays(operatorIds: operators, from: from, to: to);
+    return {
+      'service_days': days['service_days'] ?? const [],
+      'holidays': days['holidays'] ?? const [],
+      'service_days_from': formatDate(from),
+      'service_days_to': formatDate(to),
+      'service_days_operators': operators,
+      'service_days_at': clock().toUtc().toIso8601String(),
+    };
   }
 
   Future<RedeemResult> redeem(String code) async {

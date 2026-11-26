@@ -421,11 +421,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get miniMapFollowHint =>
-      'Folge dieser Haltestelle, um sie auf einer kleinen Karte zu sehen.';
+      'Haltestellen, denen du folgst, können auf einer kleinen Karte erscheinen, höchstens zwei je Busdienst.';
 
   @override
   String get miniMapLimit =>
-      'Keine Karte für diese Haltestelle: Die Karte zeigt nur die ersten zwei Haltestellen, denen du je Busdienst folgst.';
+      'Keine Karte für diese Haltestelle. Die kleine Karte zeigt höchstens zwei Haltestellen je Busdienst, denen du folgst; nach dem Entfolgen bleibt ein Platz 30 Tage belegt.';
 
   @override
   String get liveTripsHeader => 'Sonderfahrten';
@@ -439,6 +439,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String liveTripNextStop(String stop) {
     return 'Als Nächstes: $stop';
   }
+
+  @override
+  String get liveTripNoAlerts =>
+      'Für Sonderfahrten werden noch keine Benachrichtigungen gesendet. Die Haltestelle erscheint mit ihrer Ankunftszeit auf dem Startbildschirm.';
 
   @override
   String get liveTripGone => 'Diese Fahrt wird nicht mehr angezeigt.';

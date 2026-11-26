@@ -147,12 +147,13 @@
   "newsHidden": "{count, plural, =1{1 announcement hidden} other{{count} announcements hidden}}",
   "@newsHidden": {"placeholders": {"count": {"type": "int"}}},
   "calendarHolidaysHeader": "National holidays",
-  "miniMapFollowHint": "Follow this stop to see it on a small map.",
-  "miniMapLimit": "No map for this stop: the map shows only the first two stops you follow per bus service.",
+  "miniMapFollowHint": "Stops you follow can show on a small map, at most two per bus service.",
+  "miniMapLimit": "No map for this stop. A small map shows at most two stops you follow per bus service; a place stays taken for 30 days after you unfollow a stop.",
   "liveTripsHeader": "Extra trips",
   "liveTripVisibleUntil": "Shown until {time}",
   "@liveTripVisibleUntil": {"placeholders": {"time": {"type": "String"}}},
   "liveTripNextStop": "Next: {stop}",
   "@liveTripNextStop": {"placeholders": {"stop": {"type": "String"}}},
+  "liveTripNoAlerts": "Alerts for extra trips are not sent yet. The stop shows on your home screen with its arrival time.",
   "liveTripGone": "This trip is no longer shown."
 }

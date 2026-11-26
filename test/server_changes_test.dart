@@ -263,6 +263,36 @@ void main() {
     });
   });
 
+  test('service days load once per range and operators, not with every poll', () async {
+    final api = FakeApi(joined: true);
+    var now = mondayMorning;
+    final state = AppState(api: api, store: await freshStore(), clock: () => now, phoneLanguage: () => 'en');
+    await state.refresh();
+    await state.refresh();
+    expect(api.catalogCalls, 2);
+    expect(api.serviceDaysCalls, 1);
+    expect(state.catalog.serviceDays[calendarId], contains('2026-11-24'));
+    now = now.add(const Duration(hours: 7));
+    await state.refresh();
+    expect(api.serviceDaysCalls, 2);
+    // A new operator (joined, or a followed public route): load again.
+    await state.leaveOperator(opId);
+    expect(api.serviceDaysCalls, 3);
+  });
+
+  testWidgets('a foreground alert before start or after delete does not refresh', (tester) async {
+    final push = FakePush();
+    final api = FakeApi(joined: true);
+    final state = await pumpApp(tester, api: api, push: push);
+    await tester.runAsync(state.deleteMyData);
+    await tester.pumpAndSettle();
+    final before = api.catalogCalls;
+    push.foreground.add(PushAlert.fromData(_alertData(), title: 'T', body: 'B')!);
+    await tester.pumpAndSettle();
+    expect(api.catalogCalls, before);
+    expect(find.text('T\nB'), findsNothing);
+  });
+
   group('post categories', () {
     Json post(String id, String category, String title, String at) => {
       'id': id,
@@ -336,7 +366,7 @@ void main() {
       await pumpApp(tester, api: api, mapStyleUrl: 'https://tiles.example/style.json');
       await openStop(tester, 3);
       expect(api.calls, contains('mapData:s3'));
-      expect(find.text('Follow this stop to see it on a small map.'), findsOneWidget);
+      expect(find.text('Stops you follow can show on a small map, at most two per bus service.'), findsOneWidget);
     });
 
     testWidgets('a followed stop without a location: the two-stop limit', (tester) async {
@@ -346,7 +376,7 @@ void main() {
       await pumpApp(tester, api: api, mapStyleUrl: 'https://tiles.example/style.json');
       await openStop(tester, 3);
       expect(
-        find.text('No map for this stop: the map shows only the first two stops you follow per bus service.'),
+        find.textContaining('No map for this stop. A small map shows at most two stops'),
         findsOneWidget,
       );
     });
@@ -364,8 +394,9 @@ void main() {
   group('live trips', () {
     testWidgets('shown on home with the next stop; follow a stop of the trip', (tester) async {
       phoneSize(tester);
+      final push = FakePush();
       final api = FakeApi(joined: true)..liveTrips = [liveTrip()];
-      final state = await pumpApp(tester, api: api);
+      final state = await pumpApp(tester, api: api, push: push);
       expect(find.text('Extra trips'), findsOneWidget);
       expect(find.text('Museum tour'), findsOneWidget);
       expect(find.textContaining('Next: Shin-Kobe Station'), findsOneWidget);
@@ -379,6 +410,9 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('live-stop-2')));
       await tester.pumpAndSettle();
+      // No alerts for live trips yet: no alert settings, no push prompt.
+      expect(find.textContaining('Alerts for extra trips are not sent yet'), findsOneWidget);
+      expect(find.text('Minutes away'), findsNothing);
       await tester.tap(find.byKey(const Key('save-alert')));
       await tester.runAsync(() => Future<void>.delayed(Duration.zero));
       await tester.pumpAndSettle();
@@ -386,6 +420,7 @@ void main() {
       final sub = state.catalog.subscriptions.single;
       expect(sub.tripInstanceId, 'live-1');
       expect(sub.patternId, isNull);
+      expect(push.permissionRequests, 0);
 
       await tester.pageBack();
       await tester.pumpAndSettle();

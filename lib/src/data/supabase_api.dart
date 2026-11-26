@@ -81,7 +81,7 @@ class SupabaseApi implements BuspilotApi {
   });
 
   @override
-  Future<Json> fetchCatalog({required DateTime from, required DateTime to}) => _run(() async {
+  Future<Json> fetchCatalog() => _run(() async {
     final results = await Future.wait<List<dynamic>>([
       client
           .from('operator')
@@ -118,18 +118,12 @@ class SupabaseApi implements BuspilotApi {
             'trigger_value,notify_passed,muted_until',
           )
           .eq('device_id', _uid),
-      client
-          .from('national_holiday')
-          .select('date,name')
-          .gte('date', formatDate(from))
-          .lte('date', formatDate(to)),
     ]);
     final members = {
       for (final m in results[4])
         if ((m as Map)['revoked_at'] == null) m['operator_id'] as String,
     };
     final routeIds = {for (final r in results[1]) (r as Map)['id'] as String};
-    final routeOperators = {for (final r in results[1]) (r as Map)['operator_id'] as String};
     // Posts: RLS shows general posts to members only, but also the route
     // posts of every public route; ask for the device's own so those do not
     // crowd them out under the limit.
@@ -137,28 +131,14 @@ class SupabaseApi implements BuspilotApi {
       if (members.isNotEmpty) 'operator_id.in.(${members.join(',')})',
       if (routeIds.isNotEmpty) 'route_id.in.(${routeIds.join(',')})',
     ];
-    final more = await Future.wait<List<dynamic>>([
-      if (filters.isEmpty)
-        Future.value(const [])
-      else
-        client
-            .from('post')
-            .select('id,operator_id,route_id,category,title,body,published_at')
-            .or(filters.join(','))
-            .order('published_at', ascending: false)
-            .limit(100),
-      // Service days per operator of the device's routes (not every public
-      // operator's calendar).
-      for (final op in routeOperators)
-        client.rpc(
-          'service_days',
-          params: {
-            'p_from': formatDate(from),
-            'p_to': formatDate(to),
-            'p_operator_id': op,
-          },
-        ).select('calendar_id,service_date'),
-    ]);
+    final posts = filters.isEmpty
+        ? const <Map<String, dynamic>>[]
+        : await client
+              .from('post')
+              .select('id,operator_id,route_id,category,title,body,published_at')
+              .or(filters.join(','))
+              .order('published_at', ascending: false)
+              .limit(100);
     return {
       'operators': results[0],
       'routes': results[1],
@@ -166,11 +146,33 @@ class SupabaseApi implements BuspilotApi {
       'calendars': results[3],
       'memberships': results[4],
       'subscriptions': results[5],
-      'holidays': results[6],
-      'posts': more.first,
-      'service_days': [for (final days in more.skip(1)) ...days],
-      'service_days_from': formatDate(from),
-      'service_days_to': formatDate(to),
+      'posts': posts,
+    };
+  });
+
+  @override
+  Future<Json> fetchServiceDays({
+    required List<String> operatorIds,
+    required DateTime from,
+    required DateTime to,
+  }) => _run(() async {
+    final results = await Future.wait<List<dynamic>>([
+      client
+          .from('national_holiday')
+          .select('date,name')
+          .gte('date', formatDate(from))
+          .lte('date', formatDate(to)),
+      // Per operator of the device's routes, not every public operator's
+      // calendar.
+      for (final op in operatorIds)
+        client.rpc(
+          'service_days',
+          params: {'p_from': formatDate(from), 'p_to': formatDate(to), 'p_operator_id': op},
+        ).select('calendar_id,service_date'),
+    ]);
+    return {
+      'holidays': results.first,
+      'service_days': [for (final days in results.skip(1)) ...days],
     };
   });
 
