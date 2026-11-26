@@ -164,3 +164,5 @@ Every pull request gets at least one thorough self-review before merge; see the 
 ## License
 
 [GNU Affero General Public License v3.0](LICENSE)
+
+The Buspilot name, logo, app icons, map markers and brand colours (`assets/markers/`, `lib/src/ui/brand/`, the launcher icons under `android/app/src/main/res/mipmap-*` and `ios/Runner/Assets.xcassets/AppIcon.appiconset/`) come from the private `buspilot-org/brand` repository and are not covered by this licence. All rights reserved; forks must replace them. The M PLUS Rounded 1c font in `assets/fonts/` is licensed under the [SIL Open Font License 1.1](assets/fonts/OFL.txt).

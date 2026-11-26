@@ -78,4 +78,22 @@ void main() {
     final fixed = routeColors('FFEB3B', 'FFFFFF', scheme);
     expect(fixed.foreground, Colors.black);
   });
+
+  group('buildTheme', () {
+    test('uses the brand colours, font and token extension', () {
+      for (final b in Brightness.values) {
+        final t = buildTheme(b);
+        final bp = b == Brightness.dark ? BuspilotColors.dark : BuspilotColors.light;
+        expect(t.extension<BuspilotColors>(), bp);
+        expect(t.colorScheme.primary, bp.primary);
+        expect(t.colorScheme.onPrimary, bp.onPrimary);
+        expect(t.scaffoldBackgroundColor, bp.background);
+        expect(t.textTheme.bodyLarge?.fontFamily, brandFontFamily);
+        // Never smaller than 12.
+        for (final s in [t.textTheme.bodySmall, t.textTheme.labelSmall, t.textTheme.labelMedium]) {
+          expect(s!.fontSize, greaterThanOrEqualTo(12));
+        }
+      }
+    });
+  });
 }

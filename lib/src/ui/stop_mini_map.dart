@@ -86,8 +86,6 @@ class _StopMiniMapState extends State<StopMiniMap> {
         ),
       );
     }
-    final scheme = Theme.of(context).colorScheme;
-    final hex = '#${(scheme.primary.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ClipRRect(
@@ -104,12 +102,9 @@ class _StopMiniMapState extends State<StopMiniMap> {
             tiltGesturesEnabled: false,
             attributionButtonPosition: AttributionButtonPosition.bottomRight,
             onMapCreated: (c) => _controller = c,
-            onStyleLoadedCallback: () => _controller?.addCircle(CircleOptions(
+            onStyleLoadedCallback: () => _controller?.addSymbol(SymbolOptions(
               geometry: LatLng(p.lat, p.lng),
-              circleRadius: 8,
-              circleColor: '#FFFFFF',
-              circleStrokeColor: hex,
-              circleStrokeWidth: 4,
+              iconImage: 'assets/markers/my-stop.png',
             )),
           ),
         ),
