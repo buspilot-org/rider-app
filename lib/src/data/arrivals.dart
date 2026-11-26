@@ -302,11 +302,15 @@ DateTime? tripStart(Visit visit, Operator? op, DateTime now) {
     if (t != null && (first == null || t.isBefore(first))) first = t;
   }
   if (first != null) return first;
-  if (visit.trip case final trip?) {
-    final loc = locationOf(op);
-    final day = instance == null ? serviceDay(loc, now) : parseDate(instance.serviceDate);
-    return atOffset(loc, day, trip.startTime);
-  }
+  if (visit.trip case final trip?) return scheduledStart(trip, instance, op, now);
   final planned = instance?.plannedStops;
   return (planned == null || planned.isEmpty) ? null : planned.first.planned;
+}
+
+/// When [trip] starts by the timetable: on [instance]'s service date, else on
+/// today's service day.
+DateTime scheduledStart(Trip trip, TripInstance? instance, Operator? op, DateTime now) {
+  final loc = locationOf(op);
+  final day = instance == null ? serviceDay(loc, now) : parseDate(instance.serviceDate);
+  return atOffset(loc, day, trip.startTime);
 }

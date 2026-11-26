@@ -114,6 +114,8 @@ class RouteBadge extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.foreground),
       ),
     );

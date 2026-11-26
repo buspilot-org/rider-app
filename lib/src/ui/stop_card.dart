@@ -165,19 +165,8 @@ class StopCard extends StatelessWidget {
                       [
                         if (visit != null && status == null && visit.kind != VisitKind.scheduled)
                           phaseText(context, visit.tripPhase),
-                        if (visit?.trip case final trip?)
-                          l.tripAt(
-                            formatTime(
-                              atOffset(
-                                locationOf(op),
-                                visit!.instance == null
-                                    ? serviceDay(locationOf(op), now)
-                                    : parseDate(visit.instance!.serviceDate),
-                                trip.startTime,
-                              ),
-                              op,
-                            ),
-                          ),
+                        if (visit case Visit(:final trip?, :final instance))
+                          l.tripAt(formatTime(scheduledStart(trip, instance, op, now), op)),
                         if (subscription.isMuted(now))
                           l.alertPausedThrough(formatPausedThrough(subscription.mutedUntil!, op, context.lang)),
                       ].join(' · '),

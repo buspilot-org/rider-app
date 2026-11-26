@@ -213,4 +213,23 @@ void main() {
     expect(find.text('Etwas verspätet'), findsOneWidget);
     expect(find.text('in 17 Min.', findRichText: true), findsOneWidget);
   });
+
+  testWidgets('long German label at text scale 2 on a small phone: no overflow', (tester) async {
+    tester.view.physicalSize = const Size(320, 640) * 3;
+    tester.view.devicePixelRatio = 3;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final api = FakeApi(
+      joined: true,
+      instances: [instance(id: 'ti-0730', tripId: trip0730, serviceDate: '2026-11-23', status: 'planned')],
+    );
+    api.subscriptions.add(_sub());
+    await pumpApp(tester, api: api, now: kobe(7, 40), language: 'de');
+    expect(tester.takeException(), isNull);
+    final chip = find.descendant(of: find.byKey(const ValueKey('stop-status')), matching: find.byType(Text));
+    expect(tester.widget<Text>(chip).data, 'Noch nicht gestartet');
+    expect(tester.widget<Text>(chip).maxLines, 1);
+    expect(tester.getSize(find.byKey(const ValueKey('stop-status'))).width, lessThanOrEqualTo(180));
+  });
 }
