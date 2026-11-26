@@ -95,11 +95,21 @@ class _RouteMapState extends State<RouteMap> {
     }
   }
 
-  Future<void> _draw({bool fit = false}) async {
+  // Draws one at a time: a poll during a refit must not add a second bus.
+  Future<void> _drawing = Future.value();
+
+  Future<void> _draw({bool fit = false}) {
+    final next = _drawing.then((_) => _drawNow(fit: fit)).catchError((_) {});
+    _drawing = next;
+    return next;
+  }
+
+  Future<void> _drawNow({bool fit = false}) async {
     final c = _controller;
     final d = _data;
     if (c == null || d == null || !_styleLoaded) return;
-    final color = parseHexColor(widget.route.color) ?? Theme.of(context).colorScheme.primary;
+    // The basemap is light in both themes, so the fallback is the light primary.
+    final color = parseHexColor(widget.route.color) ?? BuspilotColors.light.primary;
     final hex = '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     if (fit) {
       await c.clearLines();
@@ -124,7 +134,7 @@ class _RouteMapState extends State<RouteMap> {
     }
     final v = _vehicle;
     if (v != null) {
-      final opts = SymbolOptions(geometry: LatLng(v.lat, v.lng), iconImage: _busIcon);
+      final opts = SymbolOptions(geometry: LatLng(v.lat, v.lng), iconImage: _busIcon, zIndex: 1);
       if (_bus == null) {
         _bus = await c.addSymbol(opts);
       } else {

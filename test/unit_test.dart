@@ -2,6 +2,7 @@ import 'package:buspilot_rider/src/data/ewkb.dart';
 import 'package:buspilot_rider/src/data/invite_link.dart';
 import 'package:buspilot_rider/src/data/models.dart';
 import 'package:buspilot_rider/src/ui/theme.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -93,6 +94,20 @@ void main() {
         for (final s in [t.textTheme.bodySmall, t.textTheme.labelSmall, t.textTheme.labelMedium]) {
           expect(s!.fontSize, greaterThanOrEqualTo(12));
         }
+      }
+    });
+  });
+
+  group('bundled brand assets', () {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    test('markers and the font licence are in the bundle', () async {
+      for (final path in [
+        'assets/markers/stop.png',
+        'assets/markers/bus-marker.png',
+        'assets/markers/my-stop.png',
+        'assets/fonts/OFL.txt',
+      ]) {
+        expect((await rootBundle.load(path)).lengthInBytes, greaterThan(0), reason: path);
       }
     });
   });
