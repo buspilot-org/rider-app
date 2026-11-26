@@ -2,6 +2,7 @@ import 'package:buspilot_rider/src/data/ewkb.dart';
 import 'package:buspilot_rider/src/data/invite_link.dart';
 import 'package:buspilot_rider/src/data/models.dart';
 import 'package:buspilot_rider/src/ui/theme.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -77,5 +78,37 @@ void main() {
     // Yellow on white is unreadable: falls back to black text.
     final fixed = routeColors('FFEB3B', 'FFFFFF', scheme);
     expect(fixed.foreground, Colors.black);
+  });
+
+  group('buildTheme', () {
+    test('uses the brand colours, font and token extension', () {
+      for (final b in Brightness.values) {
+        final t = buildTheme(b);
+        final bp = b == Brightness.dark ? BuspilotColors.dark : BuspilotColors.light;
+        expect(t.extension<BuspilotColors>(), bp);
+        expect(t.colorScheme.primary, bp.primary);
+        expect(t.colorScheme.onPrimary, bp.onPrimary);
+        expect(t.scaffoldBackgroundColor, bp.background);
+        expect(t.textTheme.bodyLarge?.fontFamily, brandFontFamily);
+        // Never smaller than 12.
+        for (final s in [t.textTheme.bodySmall, t.textTheme.labelSmall, t.textTheme.labelMedium]) {
+          expect(s!.fontSize, greaterThanOrEqualTo(12));
+        }
+      }
+    });
+  });
+
+  group('bundled brand assets', () {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    test('markers and the font licence are in the bundle', () async {
+      for (final path in [
+        'assets/markers/stop.png',
+        'assets/markers/bus-marker.png',
+        'assets/markers/my-stop.png',
+        'assets/fonts/OFL.txt',
+      ]) {
+        expect((await rootBundle.load(path)).lengthInBytes, greaterThan(0), reason: path);
+      }
+    });
   });
 }

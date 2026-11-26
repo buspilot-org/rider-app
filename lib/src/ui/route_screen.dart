@@ -339,8 +339,10 @@ class StopTimelineRow extends StatelessWidget {
                               ? '$stateLabel · ${l.delayedBy(visit!.delay.inMinutes)}'
                               : stateLabel,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: delayed || kind == VisitKind.cancelled
+                            color: kind == VisitKind.cancelled
                                 ? scheme.error
+                                : delayed
+                                ? context.brand.delayedText
                                 : scheme.onSurfaceVariant,
                           ),
                         ),
@@ -352,7 +354,7 @@ class StopTimelineRow extends StatelessWidget {
                 child: Text(
                   timeText,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: passed ? scheme.onSurfaceVariant : (delayed ? scheme.error : null),
+                    color: passed ? scheme.onSurfaceVariant : (delayed ? context.brand.delayedText : null),
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),

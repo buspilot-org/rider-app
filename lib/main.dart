@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart' show LicenseEntryWithLineBreaks, LicenseRegistry;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:material_ui/material_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timezone/data/latest_10y.dart' as tzdata;
@@ -16,6 +18,10 @@ import 'src/state/local_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // The bundled brand font's licence, shown on the licence screen.
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(['M PLUS Rounded 1c'], await rootBundle.loadString('assets/fonts/OFL.txt'));
+  });
   if (!AppConfig.isConfigured) {
     runApp(const NotConfiguredApp());
     return;

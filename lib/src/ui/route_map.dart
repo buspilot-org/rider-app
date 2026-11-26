@@ -31,13 +31,19 @@ class RouteMap extends StatefulWidget {
   State<RouteMap> createState() => _RouteMapState();
 }
 
+// The map style is light in both app themes, so the light casing and stop
+// marker are used.
+const _casing = '#FFFFFF';
+const _stopIcon = 'assets/markers/stop.png';
+const _busIcon = 'assets/markers/bus-marker.png';
+
 class _RouteMapState extends State<RouteMap> {
   MapLibreMapController? _controller;
   MapData? _data;
   LngLat? _vehicle;
   bool _styleLoaded = false;
   Timer? _timer;
-  Circle? _bus;
+  Symbol? _bus;
   bool _failed = false;
 
   @override
@@ -89,31 +95,37 @@ class _RouteMapState extends State<RouteMap> {
     }
   }
 
-  Future<void> _draw({bool fit = false}) async {
+  // Draws one at a time: a poll during a refit must not add a second bus.
+  Future<void> _drawing = Future.value();
+
+  Future<void> _draw({bool fit = false}) {
+    final next = _drawing.then((_) => _drawNow(fit: fit)).catchError((_) {});
+    _drawing = next;
+    return next;
+  }
+
+  Future<void> _drawNow({bool fit = false}) async {
     final c = _controller;
     final d = _data;
     if (c == null || d == null || !_styleLoaded) return;
-    final color = parseHexColor(widget.route.color) ?? Theme.of(context).colorScheme.primary;
+    // The basemap is light in both themes, so the fallback is the light primary.
+    final color = parseHexColor(widget.route.color) ?? BuspilotColors.light.primary;
     final hex = '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     if (fit) {
       await c.clearLines();
-      await c.clearCircles();
+      await c.clearSymbols();
       _bus = null;
+      // Markers from the brand (assets/markers/); the map draws no shadow.
+      await c.setSymbolIconAllowOverlap(true);
+      await c.setSymbolIconIgnorePlacement(true);
       if (d.line.length >= 2) {
-        await c.addLine(LineOptions(
-          geometry: [for (final p in d.line) LatLng(p.lat, p.lng)],
-          lineColor: hex,
-          lineWidth: 4,
-        ));
+        final geometry = [for (final p in d.line) LatLng(p.lat, p.lng)];
+        // Route: 6 px in the route colour with a 2 px casing.
+        await c.addLine(LineOptions(geometry: geometry, lineColor: _casing, lineWidth: 10, lineJoin: 'round'));
+        await c.addLine(LineOptions(geometry: geometry, lineColor: hex, lineWidth: 6, lineJoin: 'round'));
       }
       for (final p in d.stops.values) {
-        await c.addCircle(CircleOptions(
-          geometry: LatLng(p.lat, p.lng),
-          circleRadius: 6,
-          circleColor: '#FFFFFF',
-          circleStrokeColor: hex,
-          circleStrokeWidth: 3,
-        ));
+        await c.addSymbol(SymbolOptions(geometry: LatLng(p.lat, p.lng), iconImage: _stopIcon));
       }
       final all = [...d.line, ...d.stops.values];
       if (all.isNotEmpty) {
@@ -122,20 +134,14 @@ class _RouteMapState extends State<RouteMap> {
     }
     final v = _vehicle;
     if (v != null) {
-      final opts = CircleOptions(
-        geometry: LatLng(v.lat, v.lng),
-        circleRadius: 9,
-        circleColor: hex,
-        circleStrokeColor: '#FFFFFF',
-        circleStrokeWidth: 3,
-      );
+      final opts = SymbolOptions(geometry: LatLng(v.lat, v.lng), iconImage: _busIcon, zIndex: 1);
       if (_bus == null) {
-        _bus = await c.addCircle(opts);
+        _bus = await c.addSymbol(opts);
       } else {
-        await c.updateCircle(_bus!, opts);
+        await c.updateSymbol(_bus!, opts);
       }
     } else if (_bus != null) {
-      await c.removeCircle(_bus!);
+      await c.removeSymbol(_bus!);
       _bus = null;
     }
   }
