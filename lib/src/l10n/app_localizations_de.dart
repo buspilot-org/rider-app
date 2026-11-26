@@ -450,4 +450,40 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get liveTripGone => 'Diese Fahrt wird nicht mehr angezeigt.';
+
+  @override
+  String get statusOnTime => 'Pünktlich';
+
+  @override
+  String get statusDelayed => 'Etwas verspätet';
+
+  @override
+  String get statusArriving => 'Kommt gleich';
+
+  @override
+  String get statusAtStop => 'An der Haltestelle';
+
+  @override
+  String get statusUnknown => 'Position unbekannt';
+
+  @override
+  String get statusNotStarted => 'Noch nicht gestartet';
+
+  @override
+  String etaInMinutes(int minutes) {
+    return 'in $minutes Min.';
+  }
+
+  @override
+  String get etaDue => 'Kommt jetzt an';
+
+  @override
+  String etaArrivesAt(String stop, String time) {
+    return 'Erreicht $stop um $time';
+  }
+
+  @override
+  String etaArrivesAround(String stop, String time, int minutes) {
+    return 'Erreicht $stop gegen $time (etwa $minutes Min. später)';
+  }
 }

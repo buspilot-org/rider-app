@@ -156,5 +156,18 @@
   "@liveTripNextStop": {"placeholders": {"stop": {"type": "String"}}},
   "liveTripNoAlerts": "Alerts for extra trips are not sent yet. The stop shows on your home screen with its arrival time.",
   "liveTripEnded": "An extra trip you followed is no longer shown",
-  "liveTripGone": "This trip is no longer shown."
+  "liveTripGone": "This trip is no longer shown.",
+  "statusOnTime": "On time",
+  "statusDelayed": "A little late",
+  "statusArriving": "Arriving soon",
+  "statusAtStop": "At the stop",
+  "statusUnknown": "Position unknown",
+  "statusNotStarted": "Not started",
+  "etaInMinutes": "in {minutes} min",
+  "@etaInMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "etaDue": "Arriving now",
+  "etaArrivesAt": "Arrives at {stop} at {time}",
+  "@etaArrivesAt": {"placeholders": {"stop": {"type": "String"}, "time": {"type": "String"}}},
+  "etaArrivesAround": "Should reach {stop} around {time} (about {minutes} min late)",
+  "@etaArrivesAround": {"placeholders": {"stop": {"type": "String"}, "time": {"type": "String"}, "minutes": {"type": "int"}}}
 }

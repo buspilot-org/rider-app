@@ -91,7 +91,7 @@ void main() {
     // Back on the route; then home shows the followed stop.
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Kitano-zaka'), findsOneWidget);
+    expect(find.textContaining('Kitano-zaka'), findsOneWidget);
     expect(find.text('Follow your stop'), findsNothing);
   });
 

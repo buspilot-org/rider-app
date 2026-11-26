@@ -114,6 +114,8 @@ class RouteBadge extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.foreground),
       ),
     );
@@ -146,16 +148,6 @@ String visitText(BuildContext context, Visit? visit, Operator? op, DateTime now)
       return l.arrivalInMinutes(minutes, t);
   }
 }
-
-IconData visitIcon(VisitKind? kind) => switch (kind) {
-  VisitKind.onTheWay => Icons.directions_bus,
-  VisitKind.delayed => Icons.schedule,
-  VisitKind.atStop => Icons.place,
-  VisitKind.passed => Icons.check_circle_outline,
-  VisitKind.cancelled => Icons.cancel_outlined,
-  VisitKind.scheduled => Icons.access_time,
-  null => Icons.event_busy,
-};
 
 String phaseText(BuildContext context, TripPhase phase) => switch (phase) {
   TripPhase.notStarted => context.l10n.phaseNotStarted,

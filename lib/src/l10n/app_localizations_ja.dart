@@ -422,4 +422,40 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get liveTripGone => 'この便の表示は終了しました。';
+
+  @override
+  String get statusOnTime => '時刻どおり';
+
+  @override
+  String get statusDelayed => '少し遅れています';
+
+  @override
+  String get statusArriving => 'まもなく到着';
+
+  @override
+  String get statusAtStop => '停留所にいます';
+
+  @override
+  String get statusUnknown => '位置不明';
+
+  @override
+  String get statusNotStarted => '運行前';
+
+  @override
+  String etaInMinutes(int minutes) {
+    return 'あと $minutes分';
+  }
+
+  @override
+  String get etaDue => 'まもなく到着します';
+
+  @override
+  String etaArrivesAt(String stop, String time) {
+    return '「$stop」に $time 到着予定';
+  }
+
+  @override
+  String etaArrivesAround(String stop, String time, int minutes) {
+    return '「$stop」に $time ごろ到着予定（約$minutes分遅れ）';
+  }
 }
