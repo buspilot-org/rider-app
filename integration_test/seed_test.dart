@@ -12,7 +12,7 @@ import 'package:buspilot_rider/src/data/models.dart';
 import 'package:buspilot_rider/src/data/supabase_api.dart';
 import 'package:buspilot_rider/src/state/app_state.dart';
 import 'package:buspilot_rider/src/state/local_store.dart';
-import 'package:buspilot_rider/src/ui/home_screen.dart';
+import 'package:buspilot_rider/src/ui/stop_card.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -91,7 +91,7 @@ void main() {
     await tester.pageBack();
     await pumpUntil(tester, find.byType(StopCard));
     expect(
-      find.descendant(of: find.byType(StopCard), matching: find.text('Kitano-zaka')),
+      find.descendant(of: find.byType(StopCard), matching: find.textContaining('Kitano-zaka')),
       findsOneWidget,
     );
 

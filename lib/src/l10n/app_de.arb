@@ -134,5 +134,16 @@
   "liveTripNextStop": "Als Nächstes: {stop}",
   "liveTripNoAlerts": "Für Sonderfahrten werden noch keine Benachrichtigungen gesendet. Die Haltestelle erscheint mit ihrer Ankunftszeit auf dem Startbildschirm.",
   "liveTripEnded": "Eine Sonderfahrt, der du folgst, wird nicht mehr angezeigt",
-  "liveTripGone": "Diese Fahrt wird nicht mehr angezeigt."
+  "liveTripGone": "Diese Fahrt wird nicht mehr angezeigt.",
+  "statusOnTime": "Pünktlich",
+  "statusDelayed": "Etwas später",
+  "statusArriving": "Kommt gleich",
+  "statusAtStop": "An der Haltestelle",
+  "statusUnknown": "Position unbekannt",
+  "statusNotStarted": "Noch nicht gestartet",
+  "etaInMinutes": "in {minutes} Min.",
+  "etaDue": "Kommt jetzt an",
+  "etaArrivesAt": "Ankunft {stop} um {time}",
+  "etaArrivesAround": "Ankunft {stop} gegen {time} (etwa {minutes} Min. später)",
+  "etaProgress": "Fahrtfortschritt bis zu deiner Haltestelle"
 }

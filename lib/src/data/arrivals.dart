@@ -266,3 +266,46 @@ Visit? currentVisitOfPattern({
     now: now,
   ).next;
 }
+
+/// How far the bus of [visit] has come on its way to the stop, from 0 (trip
+/// start) to 1 (at the stop), by time: from when the trip started (or was
+/// due to start) to [Visit.time]. Null when the bus is not on its way to the
+/// stop (not started, passed, cancelled) or the start is not known.
+double? tripProgress(Visit visit, Operator? op, DateTime now) {
+  switch (visit.kind) {
+    case VisitKind.atStop:
+      return 1;
+    case VisitKind.onTheWay:
+    case VisitKind.delayed:
+      break;
+    case VisitKind.scheduled:
+    case VisitKind.passed:
+    case VisitKind.cancelled:
+      return null;
+  }
+  final arrival = visit.time;
+  final start = tripStart(visit, op, now);
+  if (arrival == null || start == null || !arrival.isAfter(start)) return null;
+  final total = arrival.difference(start).inSeconds;
+  final done = now.difference(start).inSeconds;
+  return (done / total).clamp(0.0, 1.0);
+}
+
+/// When the trip of [visit] started: the first recorded departure, else the
+/// timetable start, else the first planned stop of a live trip.
+DateTime? tripStart(Visit visit, Operator? op, DateTime now) {
+  final instance = visit.instance;
+  DateTime? first;
+  for (final e in instance?.events ?? const <StopEvent>[]) {
+    final t = e.departedAt ?? e.passedAt ?? e.arrivedAt;
+    if (t != null && (first == null || t.isBefore(first))) first = t;
+  }
+  if (first != null) return first;
+  if (visit.trip case final trip?) {
+    final loc = locationOf(op);
+    final day = instance == null ? serviceDay(loc, now) : parseDate(instance.serviceDate);
+    return atOffset(loc, day, trip.startTime);
+  }
+  final planned = instance?.plannedStops;
+  return (planned == null || planned.isEmpty) ? null : planned.first.planned;
+}

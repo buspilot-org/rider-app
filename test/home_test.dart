@@ -47,11 +47,11 @@ void main() {
 
     expect(find.text('My stops today'), findsOneWidget);
     // Second visit of Kitano-zaka: the 07:30 trip is on its way, late.
-    expect(find.text('Delayed ~4 min · 07:55'), findsOneWidget);
+    expect(find.text('in 15 min', findRichText: true), findsOneWidget);
+    expect(find.text('Should reach Kitano-zaka around 07:55 (about 4 min late)'), findsOneWidget);
     // Shin-Kobe: the 07:30 bus has left, next is the 08:10 trip.
-    expect(find.text('08:10 · in 30 min'), findsOneWidget);
-    expect(find.text('Kitano-zaka'), findsOneWidget);
-    expect(find.text('Shin-Kobe Station'), findsOneWidget);
+    expect(find.text('in 30 min', findRichText: true), findsOneWidget);
+    expect(find.text('Arrives at Shin-Kobe Station at 08:10'), findsOneWidget);
     expect(find.text('As of ${_hm(mondayMorning)}'), findsOneWidget);
   });
 
@@ -80,7 +80,8 @@ void main() {
     expect(find.text('Cancelled (07:39)'), findsOneWidget);
     // 08:00: the 07:30 trip (07:39 at Sannomiya) is over; 08:10 is next.
     await pumpApp(tester, api: api, now: kobe(8, 0));
-    expect(find.text('08:19 · in 19 min'), findsOneWidget);
+    expect(find.text('in 19 min', findRichText: true), findsOneWidget);
+    expect(find.text('Arrives at Sannomiya at 08:19'), findsOneWidget);
   });
 
   testWidgets('no bus today on a weekend', (tester) async {
@@ -100,7 +101,7 @@ void main() {
     await tester.runAsync(state.refresh);
     await tester.pumpAndSettle();
     expect(find.textContaining('Offline · as of'), findsOneWidget);
-    expect(find.text('Shin-Kobe Station'), findsOneWidget);
+    expect(find.textContaining('Shin-Kobe Station'), findsOneWidget);
   });
 
   testWidgets('starts from the cache without network', (tester) async {
@@ -113,7 +114,7 @@ void main() {
     final offlineApi = FakeApi(joined: true)..offline = true;
     await pumpApp(tester, api: offlineApi, store: store);
     expect(find.textContaining('Offline · as of'), findsOneWidget);
-    expect(find.text('Shin-Kobe Station'), findsOneWidget);
+    expect(find.textContaining('Shin-Kobe Station'), findsOneWidget);
   });
 
   testWidgets('Japanese', (tester) async {
@@ -121,7 +122,9 @@ void main() {
     api.subscriptions.add(_sub(5));
     await pumpApp(tester, api: api, language: 'ja');
     expect(find.text('今日のマイ停留所'), findsOneWidget);
-    expect(find.text('北野坂'), findsOneWidget);
+    expect(find.text('あと 11分', findRichText: true), findsOneWidget);
+    expect(find.text('「北野坂」に 07:51 到着予定'), findsOneWidget);
+    expect(find.text('運行前'), findsOneWidget);
   });
 }
 

@@ -524,7 +524,10 @@ void main() {
       final state = await pumpApp(tester, api: api);
       expect(state.liveTrips.map((t) => t.id), ['live-1']);
       // Planned 10:20, ETA 07:52: early, so "in 12 min".
-      expect(find.text('07:52 · in 12 min'), findsWidgets);
+      expect(find.text('in 12 min', findRichText: true), findsOneWidget);
+      expect(find.text('Arrives at Sannomiya at 07:52'), findsOneWidget);
+      // The live trip tile on home says the same.
+      expect(find.textContaining('Next: Sannomiya · 07:52 · in 12 min'), findsOneWidget);
     });
 
     testWidgets('a followed stop of a trip no longer shown: a note and unfollow', (tester) async {

@@ -134,5 +134,16 @@
   "liveTripNextStop": "次: {stop}",
   "liveTripNoAlerts": "臨時便の通知はまだ送信されません。停留所はホーム画面に到着時刻とともに表示されます。",
   "liveTripEnded": "フォローしていた臨時便は表示されなくなりました",
-  "liveTripGone": "この便の表示は終了しました。"
+  "liveTripGone": "この便の表示は終了しました。",
+  "statusOnTime": "時刻どおり",
+  "statusDelayed": "少し遅れています",
+  "statusArriving": "まもなく到着",
+  "statusAtStop": "停留所にいます",
+  "statusUnknown": "位置不明",
+  "statusNotStarted": "運行前",
+  "etaInMinutes": "あと {minutes}分",
+  "etaDue": "まもなく到着します",
+  "etaArrivesAt": "「{stop}」に {time} 到着予定",
+  "etaArrivesAround": "「{stop}」に {time} ごろ到着予定（約{minutes}分遅れ）",
+  "etaProgress": "ご利用の停留所までの運行状況"
 }

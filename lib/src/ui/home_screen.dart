@@ -5,14 +5,13 @@ import 'package:material_ui/material_ui.dart';
 import '../data/arrivals.dart';
 import '../data/models.dart';
 import '../state/app_state.dart';
-import 'alert_settings_screen.dart';
 import 'calendar_screen.dart';
 import 'join_screen.dart';
 import 'live_trip_screen.dart';
 import 'news_screen.dart';
 import 'route_screen.dart';
 import 'settings_screen.dart';
-import 'theme.dart';
+import 'stop_card.dart';
 import 'widgets.dart';
 
 /// Refreshes the app state every [interval] while the screen is shown and
@@ -371,146 +370,6 @@ class _EmptyState extends StatelessWidget {
             label: Text(l.joinTitle),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// One followed stop: operator, route (or live trip), stop and the next
-/// arrival.
-class StopCard extends StatelessWidget {
-  const StopCard({
-    super.key,
-    required this.subscription,
-    required this.operatorId,
-    required this.route,
-    required this.stopName,
-    required this.next,
-    required this.now,
-    required this.onOpen,
-    this.tripTitle,
-  });
-
-  final Subscription subscription;
-  final String operatorId;
-  final BusRoute? route;
-  final String stopName;
-
-  /// For a stop of a live trip: the trip's title.
-  final String? tripTitle;
-  final NextArrival next;
-  final DateTime now;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final state = AppScope.of(context);
-    final l = context.l10n;
-    final op = state.catalog.operator(operatorId);
-    final visit = next.next;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    // Cancelled in the error colour; delays in the brand's delayed colour, never red.
-    final statusColor = switch (visit?.kind) {
-      VisitKind.cancelled => scheme.error,
-      VisitKind.delayed => context.brand.delayedText,
-      _ => null,
-    };
-    final offRoute = visit?.instance?.offRouteSince;
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  OperatorAvatar(operator: op, radius: 14),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      op?.name.resolve(context.lang) ?? '',
-                      style: theme.textTheme.bodySmall,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (route != null) RouteBadge(route: route!),
-                  IconButton(
-                    tooltip: l.alertSettings,
-                    visualDensity: VisualDensity.compact,
-                    icon: Icon(
-                      subscription.isMuted(now)
-                          ? Icons.notifications_paused_outlined
-                          : Icons.notifications_outlined,
-                    ),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => AlertSettingsScreen(
-                          patternId: subscription.patternId,
-                          tripInstanceId: subscription.tripInstanceId,
-                          stopSequence: subscription.stopSequence,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(stopName, style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    visitIcon(visit?.kind),
-                    color: statusColor ?? scheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      visitText(context, visit, op, now),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: statusColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (visit != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  [
-                    phaseText(context, visit.tripPhase),
-                    ?tripTitle,
-                    if (visit.trip != null)
-                      l.tripAt(formatTime(
-                        atOffset(
-                          locationOf(op),
-                          serviceDay(locationOf(op), now),
-                          visit.trip!.startTime,
-                        ),
-                        op,
-                      )),
-                  ].join(' · '),
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-              if (offRoute != null)
-                Text(
-                  l.positionUnknownSince(formatTime(offRoute, op)),
-                  style: theme.textTheme.bodySmall?.copyWith(color: context.brand.unknownText),
-                ),
-              if (subscription.isMuted(now))
-                Text(
-                  l.alertPausedThrough(formatPausedThrough(subscription.mutedUntil!, op, context.lang)),
-                  style: theme.textTheme.bodySmall,
-                ),
-            ],
-          ),
-        ),
       ),
     );
   }

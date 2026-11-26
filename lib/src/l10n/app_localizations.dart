@@ -831,6 +831,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This trip is no longer shown.'**
   String get liveTripGone;
+
+  /// No description provided for @statusOnTime.
+  ///
+  /// In en, this message translates to:
+  /// **'On time'**
+  String get statusOnTime;
+
+  /// No description provided for @statusDelayed.
+  ///
+  /// In en, this message translates to:
+  /// **'A little late'**
+  String get statusDelayed;
+
+  /// No description provided for @statusArriving.
+  ///
+  /// In en, this message translates to:
+  /// **'Arriving soon'**
+  String get statusArriving;
+
+  /// No description provided for @statusAtStop.
+  ///
+  /// In en, this message translates to:
+  /// **'At the stop'**
+  String get statusAtStop;
+
+  /// No description provided for @statusUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Position unknown'**
+  String get statusUnknown;
+
+  /// No description provided for @statusNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not started'**
+  String get statusNotStarted;
+
+  /// No description provided for @etaInMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'in {minutes} min'**
+  String etaInMinutes(int minutes);
+
+  /// No description provided for @etaDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Arriving now'**
+  String get etaDue;
+
+  /// No description provided for @etaArrivesAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrives at {stop} at {time}'**
+  String etaArrivesAt(String stop, String time);
+
+  /// No description provided for @etaArrivesAround.
+  ///
+  /// In en, this message translates to:
+  /// **'Should reach {stop} around {time} (about {minutes} min late)'**
+  String etaArrivesAround(String stop, String time, int minutes);
+
+  /// No description provided for @etaProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip progress to your stop'**
+  String get etaProgress;
 }
 
 class _AppLocalizationsDelegate
