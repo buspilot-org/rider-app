@@ -146,6 +146,13 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
                   route: route,
                   pattern: pattern,
                   tripInstanceId: instance?.status == TripStatus.active ? instance?.id : null,
+                  // About to reach a stop the rider follows.
+                  arriving: instance?.status == TripStatus.active &&
+                      rows.any(
+                        (r) =>
+                            r.visit?.event?.state == StopState.approaching &&
+                            catalog.subscriptionFor(pattern.id, r.stop.sequence) != null,
+                      ),
                 ),
               ),
             if (patterns.length > 1)

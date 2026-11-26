@@ -1,6 +1,8 @@
+import 'package:buspilot_rider/src/data/api.dart';
 import 'package:buspilot_rider/src/data/ewkb.dart';
 import 'package:buspilot_rider/src/data/invite_link.dart';
 import 'package:buspilot_rider/src/data/models.dart';
+import 'package:buspilot_rider/src/ui/route_map.dart';
 import 'package:buspilot_rider/src/ui/theme.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
@@ -105,10 +107,35 @@ void main() {
         'assets/markers/stop.png',
         'assets/markers/bus-marker.png',
         'assets/markers/my-stop.png',
+        'assets/markers/bus-no-signal.png',
+        'assets/markers/bus-arriving.png',
         'assets/fonts/OFL.txt',
       ]) {
         expect((await rootBundle.load(path)).lengthInBytes, greaterThan(0), reason: path);
       }
+    });
+  });
+
+  group('busMarkerFor', () {
+    final now = DateTime.utc(2026, 11, 26, 8);
+    VehiclePosition at(DateTime? t) => VehiclePosition(const LngLat(139.7, 35.6), t);
+
+    test('plain bus with a fresh position', () {
+      expect(busMarkerFor(at(now.subtract(const Duration(seconds: 30))), now: now, arriving: false),
+          'assets/markers/bus-marker.png');
+    });
+    test('arriving bus with a halo', () {
+      expect(busMarkerFor(at(now), now: now, arriving: true), 'assets/markers/bus-arriving.png');
+    });
+    test('no signal after two minutes, even when arriving', () {
+      final old = at(now.subtract(const Duration(minutes: 2, seconds: 1)));
+      expect(busMarkerFor(old, now: now, arriving: false), 'assets/markers/bus-no-signal.png');
+      expect(busMarkerFor(old, now: now, arriving: true), 'assets/markers/bus-no-signal.png');
+    });
+    test('exactly two minutes is still fresh; unknown time counts as fresh', () {
+      expect(busMarkerFor(at(now.subtract(staleVehicleAfter)), now: now, arriving: false),
+          'assets/markers/bus-marker.png');
+      expect(busMarkerFor(at(null), now: now, arriving: false), 'assets/markers/bus-marker.png');
     });
   });
 }

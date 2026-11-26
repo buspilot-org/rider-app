@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:buspilot_rider/src/data/models.dart';
 import 'package:buspilot_rider/src/state/app_state.dart';
 import 'package:buspilot_rider/src/ui/home_screen.dart';
+import 'package:buspilot_rider/src/ui/route_map.dart';
 
 import 'fakes/fake_api.dart';
 import 'fakes/harness.dart';
@@ -134,5 +135,54 @@ void main() {
     expect(saved['muted_until'], '2026-11-23T15:00:00.000Z');
     expect(saved['trigger'], 'stops');
     expect(find.textContaining('Paused through'), findsOneWidget);
+  });
+
+  group('bus marker on the route map', () {
+    Json sub(int seq) => {
+      'id': 'sub-$seq',
+      'operator_id': opId,
+      'pattern_id': patternId,
+      'trip_instance_id': null,
+      'stop_sequence': seq,
+      'trigger': 'minutes',
+      'trigger_value': 5,
+      'notify_passed': false,
+      'muted_until': null,
+    };
+
+    Future<bool> arrivingFlag(WidgetTester tester, {required String status, required String state4, int followed = 4}) async {
+      final api = FakeApi(
+        joined: true,
+        instances: [
+          instance(
+            id: 'ti-0730',
+            tripId: trip0730,
+            serviceDate: '2026-11-23',
+            status: status,
+            events: [
+              event(3, 'departed', arrived: kobe(7, 39), departed: kobe(7, 40)),
+              event(4, state4, eta: kobe(7, 42)),
+            ],
+          ),
+        ],
+      )..routeVisibility = 'public';
+      api.subscriptions.add(sub(followed));
+      await pumpApp(tester, api: api, mapStyleUrl: 'https://tiles.example/style.json');
+      await openRoute(tester);
+      // No stop locations: the map shows "not available" without a platform view.
+      return tester.widget<RouteMap>(find.byType(RouteMap)).arriving;
+    }
+
+    testWidgets('arriving when the bus approaches a followed stop', (tester) async {
+      expect(await arrivingFlag(tester, status: 'active', state4: 'approaching'), isTrue);
+    });
+
+    testWidgets('not arriving when the approached stop is not followed', (tester) async {
+      expect(await arrivingFlag(tester, status: 'active', state4: 'approaching', followed: 5), isFalse);
+    });
+
+    testWidgets('not arriving once the bus is at the stop', (tester) async {
+      expect(await arrivingFlag(tester, status: 'active', state4: 'arrived'), isFalse);
+    });
   });
 }

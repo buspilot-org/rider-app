@@ -214,6 +214,10 @@ class FakeApi implements BuspilotApi {
   /// stop id → [lng, lat] the server returns from stop_location.
   Map<String, LngLat> stopLocations = {};
 
+  /// The demo route's visibility, e.g. 'public' to show the route map (null:
+  /// the operator default, invited_eta).
+  String? routeVisibility;
+
   /// Thrown by every call, like a server error (not offline).
   Object? serverError;
 
@@ -275,6 +279,11 @@ class FakeApi implements BuspilotApi {
     calls.add('catalog');
     final json = _withExceptions(demoCatalog(subscriptions: List.of(subscriptions), member: _member));
     if (posts != null && _member) json['posts'] = List.of(posts!);
+    if (routeVisibility != null) {
+      for (final r in json['routes'] as List) {
+        (r as Json)['visibility'] = routeVisibility;
+      }
+    }
     if (withForeignPublicRoute) {
       (json['operators'] as List).add({
         'id': 'hotel',

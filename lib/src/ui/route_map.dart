@@ -21,11 +21,15 @@ class RouteMap extends StatefulWidget {
     required this.route,
     required this.pattern,
     this.tripInstanceId,
+    this.arriving = false,
   });
 
   final BusRoute route;
   final TripPattern pattern;
   final String? tripInstanceId;
+
+  /// The bus is about to reach a stop the rider follows (まもなく到着).
+  final bool arriving;
 
   @override
   State<RouteMap> createState() => _RouteMapState();
@@ -35,12 +39,25 @@ class RouteMap extends StatefulWidget {
 // marker are used.
 const _casing = '#FFFFFF';
 const _stopIcon = 'assets/markers/stop.png';
-const _busIcon = 'assets/markers/bus-marker.png';
+
+/// A bus position older than this is shown as "no signal" (位置不明): grey
+/// tile, no dot. The same default as the admin console.
+/// Measured with the phone's clock: a clock more than this fast shows every
+/// bus as no signal (the admin console has the same limit with the browser's).
+const staleVehicleAfter = Duration(minutes: 2);
+
+/// The bus marker for [vehicle] at [now]: no signal when the position is
+/// stale, else arriving (yamabuki halo) or the plain bus.
+String busMarkerFor(VehiclePosition vehicle, {required DateTime now, required bool arriving}) {
+  final at = vehicle.recordedAt;
+  if (at != null && now.difference(at) > staleVehicleAfter) return 'assets/markers/bus-no-signal.png';
+  return arriving ? 'assets/markers/bus-arriving.png' : 'assets/markers/bus-marker.png';
+}
 
 class _RouteMapState extends State<RouteMap> {
   MapLibreMapController? _controller;
   MapData? _data;
-  LngLat? _vehicle;
+  VehiclePosition? _vehicle;
   bool _styleLoaded = false;
   Timer? _timer;
   Symbol? _bus;
@@ -56,7 +73,11 @@ class _RouteMapState extends State<RouteMap> {
   @override
   void didUpdateWidget(RouteMap old) {
     super.didUpdateWidget(old);
-    if (old.tripInstanceId != widget.tripInstanceId) _loadVehicle();
+    if (old.tripInstanceId != widget.tripInstanceId) {
+      _loadVehicle();
+    } else if (old.arriving != widget.arriving) {
+      _draw();
+    }
   }
 
   @override
@@ -88,10 +109,12 @@ class _RouteMapState extends State<RouteMap> {
     try {
       final v = id == null ? null : await AppScope.read(context).live.fetchVehicle(id);
       if (!mounted) return;
-      _vehicle = v?.position;
+      _vehicle = v;
       await _draw();
     } catch (_) {
-      // Keep the last position until the next poll.
+      // Keep the last position until the next poll, but redraw: it may have
+      // become stale (no signal).
+      if (mounted) await _draw();
     }
   }
 
@@ -105,9 +128,11 @@ class _RouteMapState extends State<RouteMap> {
   }
 
   Future<void> _drawNow({bool fit = false}) async {
+    if (!mounted) return;
     final c = _controller;
     final d = _data;
     if (c == null || d == null || !_styleLoaded) return;
+    final now = AppScope.read(context).clock();
     // The basemap is light in both themes, so the fallback is the light primary.
     final color = parseHexColor(widget.route.color) ?? BuspilotColors.light.primary;
     final hex = '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
@@ -134,7 +159,8 @@ class _RouteMapState extends State<RouteMap> {
     }
     final v = _vehicle;
     if (v != null) {
-      final opts = SymbolOptions(geometry: LatLng(v.lat, v.lng), iconImage: _busIcon, zIndex: 1);
+      final icon = busMarkerFor(v, now: now, arriving: widget.arriving);
+      final opts = SymbolOptions(geometry: LatLng(v.position.lat, v.position.lng), iconImage: icon, zIndex: 1);
       if (_bus == null) {
         _bus = await c.addSymbol(opts);
       } else {
