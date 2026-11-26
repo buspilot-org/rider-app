@@ -71,7 +71,10 @@ void main() {
     expect(state.catalog.serviceDays.values.expand((d) => d), isNotEmpty);
     expect(state.catalog.holidays, isNotEmpty);
 
-    await tester.tap(find.text('Morning route A'));
+    // Let the join screen close before tapping home.
+    await pumpUntil(tester, find.text('Routes').hitTestable());
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Morning route A').hitTestable());
     await pumpUntil(tester, find.byKey(const ValueKey('stop-2')));
     await tester.tap(find.byKey(const ValueKey('stop-2')));
     await pumpUntil(tester, find.byKey(const Key('save-alert')));
