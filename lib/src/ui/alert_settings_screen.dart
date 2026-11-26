@@ -7,15 +7,18 @@ import '../state/app_state.dart';
 import 'stop_mini_map.dart';
 import 'widgets.dart';
 
-/// Follow a stop and set its alerts (`subscription`).
+/// Follow a stop and set its alerts (`subscription`): a stop of a pattern
+/// ([patternId]) or a planned stop of a live trip ([tripInstanceId]).
 class AlertSettingsScreen extends StatefulWidget {
   const AlertSettingsScreen({
     super.key,
-    required this.patternId,
+    this.patternId,
+    this.tripInstanceId,
     required this.stopSequence,
-  });
+  }) : assert((patternId == null) != (tripInstanceId == null));
 
-  final String patternId;
+  final String? patternId;
+  final String? tripInstanceId;
   final int stopSequence;
 
   @override
@@ -36,18 +39,52 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
   bool _busy = false;
   bool _initialised = false;
 
+  /// The followed stop, resolved from the catalog or the live trips.
+  ({String operatorId, BusRoute? route, String subtitle, String stopName, String? stopId})?
+  _target(AppState state) {
+    final lang = context.lang;
+    final patternId = widget.patternId;
+    if (patternId != null) {
+      final found = state.catalog.pattern(patternId);
+      if (found == null) return null;
+      final stop = found.$2.stopAt(widget.stopSequence);
+      return (
+        operatorId: found.$1.operatorId,
+        route: found.$1,
+        subtitle: found.$2.name,
+        stopName: stop?.stopName.resolve(lang) ?? '',
+        stopId: stop?.stopId,
+      );
+    }
+    final trip = state.liveTrip(widget.tripInstanceId!);
+    if (trip == null || trip.operatorId == null) return null;
+    final stop = trip.plannedStopAt(widget.stopSequence);
+    final title = trip.title.resolve(lang);
+    return (
+      operatorId: trip.operatorId!,
+      route: trip.routeId == null ? null : state.catalog.route(trip.routeId!),
+      subtitle: title.isEmpty ? context.l10n.liveTrip : title,
+      stopName: stop?.stopName.resolve(lang) ?? '',
+      stopId: stop?.stopId,
+    );
+  }
+
+  Subscription? _find(AppState state) => widget.patternId != null
+      ? state.catalog.subscriptionFor(widget.patternId!, widget.stopSequence)
+      : state.catalog.liveSubscriptionFor(widget.tripInstanceId!, widget.stopSequence);
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_initialised) return;
     _initialised = true;
     final state = AppScope.read(context);
-    final found = state.catalog.pattern(widget.patternId);
-    _existing = state.catalog.subscriptionFor(widget.patternId, widget.stopSequence);
+    _existing = _find(state);
     _draft = _existing ??
         Subscription(
-          operatorId: found?.$1.operatorId ?? '',
+          operatorId: _target(state)?.operatorId ?? '',
           patternId: widget.patternId,
+          tripInstanceId: widget.tripInstanceId,
           stopSequence: widget.stopSequence,
         );
     final muted = _draft.mutedUntil;
@@ -59,8 +96,7 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
 
   Operator? get _operator {
     final state = AppScope.read(context);
-    final found = state.catalog.pattern(widget.patternId);
-    return state.catalog.operator(found?.$1.operatorId ?? '');
+    return state.catalog.operator(_target(state)?.operatorId ?? '');
   }
 
   tz.Location get _loc => locationOf(_operator);
@@ -151,9 +187,8 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final state = AppScope.of(context);
-    final found = state.catalog.pattern(widget.patternId);
-    final stop = found?.$2.stopAt(widget.stopSequence);
-    final stopName = stop?.stopName.resolve(context.lang) ?? '';
+    final target = _target(state);
+    final stopName = target?.stopName ?? '';
     final theme = Theme.of(context);
     final choices = _draft.trigger == AlertTrigger.minutes ? _minuteChoices : _stopChoices;
     final until = _pauseUntil;
@@ -163,15 +198,26 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          if (found != null)
+          if (target == null)
             ListTile(
-              leading: RouteBadge(route: found.$1),
-              title: Text(found.$1.name.resolve(context.lang)),
-              subtitle: Text(found.$2.name),
+              leading: const Icon(Icons.info_outline),
+              title: Text(widget.patternId != null ? l.routeGone : l.liveTripGone),
+            )
+          else if (target.route != null)
+            ListTile(
+              leading: RouteBadge(route: target.route!),
+              title: Text(target.route!.name.resolve(context.lang)),
+              subtitle: Text(target.subtitle),
+            )
+          else
+            ListTile(
+              leading: const Icon(Icons.directions_bus_outlined),
+              title: Text(target.subtitle),
             ),
-          // Only this stop; hidden when the server does not return its
-          // location.
-          if (stop != null) StopMiniMap(stopId: stop.stopId),
+          // Only this stop, where the server returns its location; else a
+          // short note why there is no map.
+          if (target?.stopId != null)
+            StopMiniMap(stopId: target!.stopId!, followed: _existing != null),
           const Divider(),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -259,7 +305,7 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: FilledButton(
               key: const Key('save-alert'),
-              onPressed: _busy ? null : _save,
+              onPressed: _busy || target == null ? null : _save,
               child: Text(_existing == null ? l.followStop : l.save),
             ),
           ),

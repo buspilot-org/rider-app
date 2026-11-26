@@ -1,6 +1,7 @@
 // End-to-end test against the local Supabase stack with the seed of
-// buspilot-org/server: join with DEMO-KOBE-2026, follow a stop, see it on
-// home. Run on a device or emulator (see README):
+// buspilot-org/server: join with DEMO-KOBE-2026 (routes from rpc/my_routes,
+// service days from rpc/service_days), follow a stop, see it on home, delete
+// my data (rpc/delete_my_device). Run on a device or emulator (see README):
 //
 //   adb reverse tcp:55321 tcp:55321
 //   flutter test integration_test -d <device> --dart-define-from-file=config/local.json
@@ -32,7 +33,7 @@ Future<void> pumpUntil(WidgetTester tester, Finder finder, {int seconds = 30}) a
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('join with the demo code, follow a stop, see it on home', (tester) async {
+  testWidgets('join, follow a stop, see it on home, delete my data', (tester) async {
     expect(AppConfig.isConfigured, isTrue, reason: 'build with --dart-define-from-file');
     tzdata.initializeTimeZones();
     await Supabase.initialize(url: AppConfig.supabaseUrl, publishableKey: AppConfig.supabaseKey);
@@ -63,6 +64,12 @@ void main() {
     await tester.enterText(find.byKey(const Key('invite-code')), 'DEMO-KOBE-2026');
     await tester.tap(find.byKey(const Key('join-button')));
     await pumpUntil(tester, find.text('Morning route A'));
+    // rpc/my_routes: the operator's route only; service days and holidays
+    // for about 13 months from this month.
+    expect(state.catalog.routes.map((r) => r.id), ['d0000000-0000-4000-8000-000000000101']);
+    expect(state.catalog.serviceDaysFrom, isNotNull);
+    expect(state.catalog.serviceDays.values.expand((d) => d), isNotEmpty);
+    expect(state.catalog.holidays, isNotEmpty);
 
     await tester.tap(find.text('Morning route A'));
     await pumpUntil(tester, find.byKey(const ValueKey('stop-2')));
@@ -89,7 +96,27 @@ void main() {
     expect(rows.single['stop_sequence'], 2);
     expect(rows.single['device_id'], userId);
 
-    // Clean up: delete the device (memberships and subscriptions follow).
-    await api.deleteMyData();
+    // Delete my data from settings: rpc/delete_my_device, then sign out.
+    await tester.tap(find.byTooltip('Settings'));
+    await pumpUntil(tester, find.text('Delete my data'));
+    await tester.scrollUntilVisible(
+      find.text('Delete my data'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Delete my data'));
+    await pumpUntil(tester, find.widgetWithText(FilledButton, 'Delete'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await pumpUntil(tester, find.byKey(const Key('lang-en')));
+    expect(Supabase.instance.client.auth.currentUser, isNull);
+
+    // The anonymous user is gone: a new device does not see the old
+    // subscription, and the old one cannot sign back in with its session.
+    await Supabase.instance.client.auth.signInAnonymously();
+    expect(Supabase.instance.client.auth.currentUser!.id, isNot(userId));
+    final after = await Supabase.instance.client.from('subscription').select();
+    expect(after, isEmpty);
+    await Supabase.instance.client.rpc('delete_my_device');
+    await Supabase.instance.client.auth.signOut();
   });
 }

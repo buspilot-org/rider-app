@@ -19,6 +19,7 @@ case "${1:-}" in
   --clean)
     psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
 delete from public.trip_instance where trip_id in (select id from public.trip where gtfs_id like 'dev-live-%');
+delete from public.trip_instance where id = 'd0000000-0000-4000-8000-0000000009d1';
 delete from public.trip where gtfs_id like 'dev-live-%';
 delete from public.service_calendar where gtfs_id = 'dev-live';
 update public.route set visibility = null where id = 'd0000000-0000-4000-8000-000000000101';

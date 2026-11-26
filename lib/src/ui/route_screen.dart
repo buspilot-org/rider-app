@@ -1,6 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../config.dart';
 import '../data/arrivals.dart';
 import '../data/models.dart';
 import '../state/app_state.dart';
@@ -18,11 +17,15 @@ class RouteScreen extends StatefulWidget {
     required this.routeId,
     this.patternId,
     this.highlightSequence,
+    this.tripInstanceId,
   });
 
   final String routeId;
   final String? patternId;
   final int? highlightSequence;
+
+  /// The trip to show first (from a notification), if it is one of today's.
+  final String? tripInstanceId;
 
   @override
   State<RouteScreen> createState() => _RouteScreenState();
@@ -84,7 +87,14 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
       instances: state.instances,
       now: now,
     );
-    final selectedKey = _tripKey ?? (current == null ? null : _keyOf(current));
+    // From a notification: that trip, while it is one of today's.
+    String? fromAlert;
+    for (final v in tripVisits) {
+      if (widget.tripInstanceId != null && v.instance?.id == widget.tripInstanceId) {
+        fromAlert = _keyOf(v);
+      }
+    }
+    final selectedKey = _tripKey ?? fromAlert ?? (current == null ? null : _keyOf(current));
 
     Visit? visitFor(int sequence) {
       for (final v in visitsAt(
@@ -109,7 +119,7 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
     );
     final selectedVisit = rows.isEmpty ? null : rows.first.visit;
     final instance = selectedVisit?.instance;
-    final showMap = catalog.canSeeMap(route) && AppConfig.mapStyleUrl.isNotEmpty;
+    final showMap = catalog.canSeeMap(route) && state.mapStyleUrl.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -198,18 +208,25 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
               ),
             const SizedBox(height: 8),
             for (var i = 0; i < rows.length; i++)
-              _StopRow(
+              StopTimelineRow(
                 key: ValueKey('stop-${rows[i].stop.sequence}'),
-                route: route,
-                pattern: pattern,
-                stop: rows[i].stop,
+                stopName: rows[i].stop.stopName.resolve(context.lang),
+                operator: op,
+                lineColor: routeColors(route.color, route.textColor, Theme.of(context).colorScheme).background,
                 visit: rows[i].visit,
                 isNext: i == nextIndex,
                 isFirst: i == 0,
                 isLast: i == rows.length - 1,
                 highlighted: rows[i].stop.sequence == widget.highlightSequence,
                 followed: catalog.subscriptionFor(pattern.id, rows[i].stop.sequence) != null,
-                now: now,
+                onOpen: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AlertSettingsScreen(
+                      patternId: pattern.id,
+                      stopSequence: rows[i].stop.sequence,
+                    ),
+                  ),
+                ),
               ),
             const SizedBox(height: 24),
           ],
@@ -219,41 +236,42 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
   }
 }
 
-class _StopRow extends StatelessWidget {
-  const _StopRow({
+/// One stop on a route or live trip: the line, the stop's state and time,
+/// and the bell to follow it. Tapping opens [onOpen] (alert settings).
+class StopTimelineRow extends StatelessWidget {
+  const StopTimelineRow({
     super.key,
-    required this.route,
-    required this.pattern,
-    required this.stop,
+    required this.stopName,
+    required this.operator,
+    required this.lineColor,
     required this.visit,
     required this.isNext,
     required this.isFirst,
     required this.isLast,
     required this.highlighted,
     required this.followed,
-    required this.now,
+    required this.onOpen,
   });
 
-  final BusRoute route;
-  final TripPattern pattern;
-  final PatternStop stop;
+  final String stopName;
+  final Operator? operator;
+  final Color lineColor;
   final Visit? visit;
   final bool isNext;
   final bool isFirst;
   final bool isLast;
   final bool highlighted;
   final bool followed;
-  final DateTime now;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final op = AppScope.of(context).catalog.operator(route.operatorId);
+    final op = operator;
     final kind = visit?.kind;
     final passed = kind == VisitKind.passed;
-    final lineColor = routeColors(route.color, route.textColor, scheme).background;
 
     final String stateLabel = switch (kind) {
       VisitKind.passed => l.stopPassed,
@@ -269,14 +287,7 @@ class _StopRow extends StatelessWidget {
     return Material(
       color: highlighted ? scheme.primaryContainer.withValues(alpha: 0.4) : null,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => AlertSettingsScreen(
-              patternId: pattern.id,
-              stopSequence: stop.sequence,
-            ),
-          ),
-        ),
+        onTap: onOpen,
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -316,7 +327,7 @@ class _StopRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        stop.stopName.resolve(context.lang),
+                        stopName,
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: passed ? scheme.onSurfaceVariant : null,
                           fontWeight: isNext ? FontWeight.bold : null,
@@ -350,14 +361,7 @@ class _StopRow extends StatelessWidget {
                 tooltip: followed ? l.alertSettings : l.followStop,
                 icon: Icon(followed ? Icons.notifications_active : Icons.notifications_none),
                 color: followed ? scheme.primary : null,
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => AlertSettingsScreen(
-                      patternId: pattern.id,
-                      stopSequence: stop.sequence,
-                    ),
-                  ),
-                ),
+                onPressed: onOpen,
               ),
               const SizedBox(width: 4),
             ],

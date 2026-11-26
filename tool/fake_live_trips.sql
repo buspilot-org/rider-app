@@ -7,7 +7,9 @@
 --   - started 14 minutes ago, active, about 4 minutes late
 --   - starts in 40 minutes, planned
 --   - starts in 80 minutes, cancelled
--- and a vehicle position for the active one. Running it again replaces them.
+-- and a vehicle position for the active one, plus a live trip with its own
+-- planned stops (a museum tour for the demo audience, starting in 30 minutes,
+-- shown for 6 hours). Running it again replaces them.
 --
 -- psql variable `map` (on/off): make route A an invited_map route the demo
 -- audience may see on a map, or restore arrival times only.
@@ -36,6 +38,7 @@ select
 -- Remove the previous run.
 delete from public.trip_instance
  where trip_id in (select id from public.trip where gtfs_id like 'dev-live-%');
+delete from public.trip_instance where id = 'd0000000-0000-4000-8000-0000000009d1';
 delete from public.trip where gtfs_id like 'dev-live-%';
 
 -- A calendar that runs today only.
@@ -88,6 +91,27 @@ select 'd0000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-00000000
        now() + interval '40 minutes' + make_interval(secs => ps.arrival_offset)
   from public.pattern_stop ps
  where ps.pattern_id = 'd0000000-0000-4000-8000-000000000301';
+
+-- A live trip without a route: Shin-Kobe Station → Sannomiya → School.
+-- Planned stops get an upcoming stop event each (trigger).
+insert into public.trip_instance (id, operator_id, service_date, kind, status, title, visible_until)
+select 'd0000000-0000-4000-8000-0000000009d1', 'd0000000-0000-4000-8000-000000000001', today, 'live', 'planned',
+       '{"en": "Museum tour", "ja": "博物館見学", "de": "Museumsausflug"}', now() + interval '6 hours'
+  from dev_now;
+insert into public.trip_instance_audience (operator_id, trip_instance_id, audience_id)
+values ('d0000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-0000000009d1',
+        'd0000000-0000-4000-8000-000000000601');
+insert into public.trip_instance_stop (operator_id, trip_instance_id, stop_sequence, stop_id, planned_arrival)
+select 'd0000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-0000000009d1', v.seq, v.stop_id::uuid,
+       now() + make_interval(mins => v.mins)
+  from (values (1, 'd0000000-0000-4000-8000-000000000201', 30),
+               (2, 'd0000000-0000-4000-8000-000000000203', 45),
+               (3, 'd0000000-0000-4000-8000-000000000205', 70)) as v (seq, stop_id, mins);
+update public.stop_event e
+   set eta = tis.planned_arrival
+  from public.trip_instance_stop tis
+ where tis.trip_instance_id = e.trip_instance_id and tis.stop_sequence = e.stop_sequence
+   and e.trip_instance_id = 'd0000000-0000-4000-8000-0000000009d1';
 
 -- Between Sannomiya and Motomachi.
 insert into public.vehicle_state (vehicle_id, operator_id, trip_instance_id, location, speed_kmh, heading, recorded_at)

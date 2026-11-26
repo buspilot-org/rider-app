@@ -8,13 +8,15 @@ import '../state/app_state.dart';
 import 'alert_settings_screen.dart';
 import 'calendar_screen.dart';
 import 'join_screen.dart';
+import 'live_trip_screen.dart';
 import 'news_screen.dart';
 import 'route_screen.dart';
 import 'settings_screen.dart';
 import 'widgets.dart';
 
 /// Refreshes the app state every [interval] while the screen is shown and
-/// the app is in the foreground. Realtime comes later.
+/// the app is in the foreground. The engine's Live API replaces polling
+/// later, behind [LiveSource].
 mixin Polling<T extends StatefulWidget> on State<T> {
   Timer? _timer;
   Duration get interval => const Duration(seconds: 30);
@@ -54,24 +56,61 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
     final now = state.clock();
     final unread = state.unreadPosts;
 
-    final cards = <({Subscription sub, BusRoute route, TripPattern pattern, NextArrival next})>[];
+    final cards = <StopCard>[];
     for (final sub in catalog.subscriptions) {
-      final found = catalog.pattern(sub.patternId);
-      if (found == null) continue;
-      final (route, pattern) = found;
-      cards.add((
-        sub: sub,
-        route: route,
-        pattern: pattern,
-        next: nextArrival(
-          catalog: catalog,
+      if (sub.patternId case final patternId?) {
+        final found = catalog.pattern(patternId);
+        if (found == null) continue;
+        final (route, pattern) = found;
+        cards.add(StopCard(
+          key: ValueKey('$patternId:${sub.stopSequence}'),
+          subscription: sub,
+          operatorId: route.operatorId,
           route: route,
-          pattern: pattern,
-          sequence: sub.stopSequence,
-          instances: state.instances,
+          stopName: pattern.stopAt(sub.stopSequence)?.stopName.resolve(context.lang) ?? '',
+          next: nextArrival(
+            catalog: catalog,
+            route: route,
+            pattern: pattern,
+            sequence: sub.stopSequence,
+            instances: state.instances,
+            now: now,
+          ),
           now: now,
-        ),
-      ));
+          onOpen: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => RouteScreen(
+                routeId: route.id,
+                patternId: pattern.id,
+                highlightSequence: sub.stopSequence,
+              ),
+            ),
+          ),
+        ));
+      } else if (sub.tripInstanceId case final tripId?) {
+        // A stop of a live trip: shown while the trip is.
+        final trip = state.liveTrip(tripId);
+        if (trip == null || trip.operatorId == null) continue;
+        final visit = liveVisitAt(trip, sub.stopSequence, now);
+        cards.add(StopCard(
+          key: ValueKey('$tripId:${sub.stopSequence}'),
+          subscription: sub,
+          operatorId: trip.operatorId!,
+          route: trip.routeId == null ? null : catalog.route(trip.routeId!),
+          stopName: trip.plannedStopAt(sub.stopSequence)?.stopName.resolve(context.lang) ?? '',
+          tripTitle: liveTripTitle(context, trip),
+          next: NextArrival(next: visit, visits: [?visit]),
+          now: now,
+          onOpen: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => LiveTripScreen(
+                tripInstanceId: trip.id,
+                highlightSequence: sub.stopSequence,
+              ),
+            ),
+          ),
+        ));
+      }
     }
     // Soonest first; stops without a bus today last.
     cards.sort((a, b) {
@@ -83,7 +122,9 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
       return ta.compareTo(tb);
     });
 
-    final hasRoutes = catalog.routes.isNotEmpty;
+    final liveTrips = state.liveTrips;
+    // Routes, or only live trips (an operator's tour without a route).
+    final hasRoutes = catalog.routes.isNotEmpty || liveTrips.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -129,17 +170,15 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
               _Header(l.myStops),
               if (cards.isEmpty)
                 _HintCard(title: l.homeNoStopsTitle, body: l.homeNoStopsBody),
-              for (final c in cards)
-                StopCard(
-                  key: ValueKey('${c.sub.patternId}:${c.sub.stopSequence}'),
-                  subscription: c.sub,
-                  route: c.route,
-                  pattern: c.pattern,
-                  next: c.next,
-                  now: now,
-                ),
-              _Header(l.routesHeader),
-              ..._routeTiles(context, catalog),
+              ...cards,
+              if (liveTrips.isNotEmpty) ...[
+                _Header(l.liveTripsHeader),
+                for (final t in liveTrips) _LiveTripTile(trip: t, now: now),
+              ],
+              if (catalog.routes.isNotEmpty) ...[
+                _Header(l.routesHeader),
+                ..._routeTiles(context, catalog),
+              ],
             ],
           ],
         ),
@@ -159,6 +198,7 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
     for (final op in catalog.operators) {
       final routes = catalog.routes.where((r) => r.operatorId == op.id).toList();
       if (routes.isEmpty) continue;
+      tiles.add(OperatorCover(key: ValueKey('cover-${op.id}'), operator: op));
       for (final r in routes) {
         tiles.add(
           ListTile(
@@ -196,6 +236,37 @@ class _Header extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// A live trip on home: title, operator, and the next stop with its time.
+class _LiveTripTile extends StatelessWidget {
+  const _LiveTripTile({required this.trip, required this.now});
+  final TripInstance trip;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    final op = state.catalog.operator(trip.operatorId ?? '');
+    final route = trip.routeId == null ? null : state.catalog.route(trip.routeId!);
+    final next = nextLiveStop(trip, now);
+    final first = trip.plannedStops.isEmpty ? null : liveVisitAt(trip, trip.plannedStops.first.sequence, now);
+    final status = next == null
+        ? (first == null ? '' : phaseText(context, first.tripPhase))
+        : '${context.l10n.liveTripNextStop(next.stop.stopName.resolve(context.lang))} · '
+              '${visitText(context, next.visit, op, now)}';
+    return ListTile(
+      key: ValueKey('live-${trip.id}'),
+      leading: OperatorAvatar(operator: op),
+      title: Text(liveTripTitle(context, trip)),
+      subtitle: Text([op?.name.resolve(context.lang) ?? '', status].where((t) => t.isNotEmpty).join('\n')),
+      isThreeLine: status.isNotEmpty,
+      trailing: route == null ? null : RouteBadge(route: route),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => LiveTripScreen(tripInstanceId: trip.id)),
+      ),
+    );
+  }
 }
 
 class _HintCard extends StatelessWidget {
@@ -240,29 +311,37 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// One followed stop: operator, route, stop and the next arrival.
+/// One followed stop: operator, route (or live trip), stop and the next
+/// arrival.
 class StopCard extends StatelessWidget {
   const StopCard({
     super.key,
     required this.subscription,
+    required this.operatorId,
     required this.route,
-    required this.pattern,
+    required this.stopName,
     required this.next,
     required this.now,
+    required this.onOpen,
+    this.tripTitle,
   });
 
   final Subscription subscription;
-  final BusRoute route;
-  final TripPattern pattern;
+  final String operatorId;
+  final BusRoute? route;
+  final String stopName;
+
+  /// For a stop of a live trip: the trip's title.
+  final String? tripTitle;
   final NextArrival next;
   final DateTime now;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
     final l = context.l10n;
-    final op = state.catalog.operator(route.operatorId);
-    final stop = pattern.stopAt(subscription.stopSequence);
+    final op = state.catalog.operator(operatorId);
     final visit = next.next;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -272,15 +351,7 @@ class StopCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => RouteScreen(
-              routeId: route.id,
-              patternId: pattern.id,
-              highlightSequence: subscription.stopSequence,
-            ),
-          ),
-        ),
+        onTap: onOpen,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -297,7 +368,7 @@ class StopCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  RouteBadge(route: route),
+                  if (route != null) RouteBadge(route: route!),
                   IconButton(
                     tooltip: l.alertSettings,
                     visualDensity: VisualDensity.compact,
@@ -309,7 +380,8 @@ class StopCard extends StatelessWidget {
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => AlertSettingsScreen(
-                          patternId: pattern.id,
+                          patternId: subscription.patternId,
+                          tripInstanceId: subscription.tripInstanceId,
                           stopSequence: subscription.stopSequence,
                         ),
                       ),
@@ -318,10 +390,7 @@ class StopCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              Text(
-                stop?.stopName.resolve(context.lang) ?? '',
-                style: theme.textTheme.titleMedium,
-              ),
+              Text(stopName, style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -345,6 +414,7 @@ class StopCard extends StatelessWidget {
                 Text(
                   [
                     phaseText(context, visit.tripPhase),
+                    ?tripTitle,
                     if (visit.trip != null)
                       l.tripAt(formatTime(
                         atOffset(

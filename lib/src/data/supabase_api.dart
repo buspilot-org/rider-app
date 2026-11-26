@@ -45,16 +45,20 @@ class SupabaseApi implements BuspilotApi {
   });
 
   @override
-  Future<void> touchDevice({
+  Future<bool> touchDevice({
     required String platform,
     required String language,
   }) => _run(() async {
-    await client.from('device').upsert({
-      'id': _uid,
-      'platform': platform,
-      'language': language,
-      'last_seen_at': DateTime.now().toUtc().toIso8601String(),
-    });
+    final rows = await client
+        .from('device')
+        .upsert({
+          'id': _uid,
+          'platform': platform,
+          'language': language,
+          'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .select('push_token');
+    return rows.isNotEmpty && rows.first['push_token'] != null;
   });
 
   @override
@@ -77,7 +81,7 @@ class SupabaseApi implements BuspilotApi {
   });
 
   @override
-  Future<Json> fetchCatalog() => _run(() async {
+  Future<Json> fetchCatalog({required DateTime from, required DateTime to}) => _run(() async {
     final results = await Future.wait<List<dynamic>>([
       client
           .from('operator')
@@ -85,8 +89,11 @@ class SupabaseApi implements BuspilotApi {
             'id,name,timezone,languages,branding,default_visibility,'
             'operator_link(id,label,url,sort_order)',
           ),
+      // Routes of joined operators and followed routes only; reading `route`
+      // would return every public route as well. A public route opened from
+      // a link is still read from `route` by id.
       client
-          .from('route')
+          .rpc('my_routes')
           .select(
             'id,operator_id,name,short_name,color,text_color,visibility,sort_order,'
             'trip_pattern(id,name,shape_id,direction,'
@@ -107,37 +114,51 @@ class SupabaseApi implements BuspilotApi {
       client
           .from('subscription')
           .select(
-            'id,operator_id,pattern_id,stop_sequence,trigger,trigger_value,'
-            'notify_passed,muted_until',
+            'id,operator_id,pattern_id,trip_instance_id,stop_sequence,trigger,'
+            'trigger_value,notify_passed,muted_until',
           )
           .eq('device_id', _uid),
+      client
+          .from('national_holiday')
+          .select('date,name')
+          .gte('date', formatDate(from))
+          .lte('date', formatDate(to)),
     ]);
-    // Posts of joined operators and of followed routes only: RLS also
-    // returns every public operator's posts, which would crowd out the
-    // device's own under the limit.
     final members = {
       for (final m in results[4])
         if ((m as Map)['revoked_at'] == null) m['operator_id'] as String,
     };
-    final followedPatterns = {for (final s in results[5]) (s as Map)['pattern_id'] as String};
-    final followedRoutes = {
-      for (final r in results[1])
-        if (((r as Map)['trip_pattern'] as List? ?? const [])
-            .any((p) => followedPatterns.contains((p as Map)['id'])))
-          r['id'] as String,
-    };
+    final routeIds = {for (final r in results[1]) (r as Map)['id'] as String};
+    final routeOperators = {for (final r in results[1]) (r as Map)['operator_id'] as String};
+    // Posts: RLS shows general posts to members only, but also the route
+    // posts of every public route; ask for the device's own so those do not
+    // crowd them out under the limit.
     final filters = [
       if (members.isNotEmpty) 'operator_id.in.(${members.join(',')})',
-      if (followedRoutes.isNotEmpty) 'route_id.in.(${followedRoutes.join(',')})',
+      if (routeIds.isNotEmpty) 'route_id.in.(${routeIds.join(',')})',
     ];
-    final posts = filters.isEmpty
-        ? const <Map<String, dynamic>>[]
-        : await client
-              .from('post')
-              .select('id,operator_id,route_id,title,body,published_at')
-              .or(filters.join(','))
-              .order('published_at', ascending: false)
-              .limit(100);
+    final more = await Future.wait<List<dynamic>>([
+      if (filters.isEmpty)
+        Future.value(const [])
+      else
+        client
+            .from('post')
+            .select('id,operator_id,route_id,category,title,body,published_at')
+            .or(filters.join(','))
+            .order('published_at', ascending: false)
+            .limit(100),
+      // Service days per operator of the device's routes (not every public
+      // operator's calendar).
+      for (final op in routeOperators)
+        client.rpc(
+          'service_days',
+          params: {
+            'p_from': formatDate(from),
+            'p_to': formatDate(to),
+            'p_operator_id': op,
+          },
+        ).select('calendar_id,service_date'),
+    ]);
     return {
       'operators': results[0],
       'routes': results[1],
@@ -145,7 +166,11 @@ class SupabaseApi implements BuspilotApi {
       'calendars': results[3],
       'memberships': results[4],
       'subscriptions': results[5],
-      'posts': posts,
+      'holidays': results[6],
+      'posts': more.first,
+      'service_days': [for (final days in more.skip(1)) ...days],
+      'service_days_from': formatDate(from),
+      'service_days_to': formatDate(to),
     };
   });
 
@@ -164,6 +189,31 @@ class SupabaseApi implements BuspilotApi {
         )
         .inFilter('route_id', routeIds)
         .inFilter('service_date', serviceDates);
+    return [for (final r in rows) r.cast<String, dynamic>()];
+  });
+
+  @override
+  Future<List<Json>> fetchLiveTrips({
+    required List<String> operatorIds,
+    required List<String> serviceDates,
+  }) => _run(() async {
+    if (operatorIds.isEmpty) return const <Json>[];
+    final now = DateTime.now().toUtc().toIso8601String();
+    final rows = await client
+        .from('trip_instance')
+        .select(
+          'id,operator_id,route_id,pattern_id,trip_id,service_date,kind,status,'
+          'off_route_since,progress_at,title,visible_until,updated_at,'
+          'trip_instance_stop(stop_sequence,stop_id,planned_arrival,planned_departure,stop(name)),'
+          'stop_event(stop_sequence,state,eta,arrived_at,departed_at,passed_at,updated_at)',
+        )
+        .eq('kind', 'live')
+        .isFilter('pattern_id', null)
+        .inFilter('operator_id', operatorIds)
+        .or(
+          'visible_until.gt.$now,'
+          'and(visible_until.is.null,service_date.in.(${serviceDates.join(',')}))',
+        );
     return [for (final r in rows) r.cast<String, dynamic>()];
   });
 
@@ -211,7 +261,12 @@ class SupabaseApi implements BuspilotApi {
     row.remove('id');
     await client
         .from('subscription')
-        .upsert(row, onConflict: 'device_id,pattern_id,stop_sequence');
+        .upsert(
+          row,
+          onConflict: subscription.isLive
+              ? 'device_id,trip_instance_id,stop_sequence'
+              : 'device_id,pattern_id,stop_sequence',
+        );
   });
 
   @override
@@ -231,7 +286,10 @@ class SupabaseApi implements BuspilotApi {
 
   @override
   Future<void> deleteMyData() => _run(() async {
-    await client.from('device').delete().eq('id', _uid);
-    await client.auth.signOut();
+    // Deletes the anonymous user; device, memberships, subscriptions and the
+    // alert log follow by cascade. The session is then invalid, so sign out
+    // locally only.
+    await client.rpc('delete_my_device');
+    await client.auth.signOut(scope: SignOutScope.local);
   });
 }

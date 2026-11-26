@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:buspilot_rider/src/data/api.dart';
+import 'package:buspilot_rider/src/data/ewkb.dart';
 import 'package:buspilot_rider/src/data/models.dart';
 
 /// Fixed ids, as in the server's seed.
@@ -15,6 +16,10 @@ const demoCode = 'DEMO-KOBE-2026';
 /// The demo operator of the server seed: a loop that serves Kitano-zaka twice
 /// (sequence 2 and 5), trips at 07:30 and 08:10 on school days.
 Json demoCatalog({List<Json> subscriptions = const [], bool member = true}) => {
+  // What the server returns: routes from rpc/my_routes (the operator's
+  // routes for members; for others, routes they follow), general posts for
+  // members only. The fake has one route, so a non-member sees it only
+  // while following a stop on it.
   'operators': [
     {
       'id': opId,
@@ -34,7 +39,7 @@ Json demoCatalog({List<Json> subscriptions = const [], bool member = true}) => {
     },
   ],
   'routes': [
-    {
+    if (member || subscriptions.isNotEmpty) {
       'id': routeId,
       'operator_id': opId,
       'name': {'en': 'Morning route A', 'ja': '朝便A'},
@@ -86,15 +91,56 @@ Json demoCatalog({List<Json> subscriptions = const [], bool member = true}) => {
   ],
   'subscriptions': subscriptions,
   'posts': [
-    {
-      'id': 'p1',
-      'operator_id': opId,
-      'route_id': null,
-      'title': {'en': 'Welcome to Buspilot', 'ja': 'Buspilot へようこそ'},
-      'body': {'en': 'This is a demo operator.', 'ja': 'これはデモ用の事業者です。'},
-      'published_at': '2026-11-23T00:00:00Z',
-    },
+    if (member)
+      {
+        'id': 'p1',
+        'operator_id': opId,
+        'route_id': null,
+        'category': 'general',
+        'title': {'en': 'Welcome to Buspilot', 'ja': 'Buspilot へようこそ'},
+        'body': {'en': 'This is a demo operator.', 'ja': 'これはデモ用の事業者です。'},
+        'published_at': '2026-11-23T00:00:00Z',
+      },
   ],
+};
+
+/// A live trip with its own planned stops (no pattern): a tour of the demo
+/// operator, stops s1 → s3 → s5.
+Json liveTrip({
+  String id = 'live-1',
+  String status = 'planned',
+  String serviceDate = '2026-11-23',
+  String? visibleUntil = '2026-11-23T12:00:00Z',
+  List<Json> events = const [],
+  String? routeId,
+}) => {
+  'id': id,
+  'operator_id': opId,
+  'route_id': routeId,
+  'pattern_id': null,
+  'trip_id': null,
+  'service_date': serviceDate,
+  'kind': 'live',
+  'status': status,
+  'off_route_since': null,
+  'title': {'en': 'Museum tour', 'ja': '博物館見学'},
+  'visible_until': visibleUntil,
+  'trip_instance_stop': [
+    _planned(1, 's1', '2026-11-23T01:00:00Z', 'Shin-Kobe Station', '新神戸駅'),
+    _planned(2, 's3', '2026-11-23T01:20:00Z', 'Sannomiya', '三宮'),
+    _planned(3, 's5', '2026-11-23T01:45:00Z', 'School', '学校'),
+  ],
+  'stop_event': events,
+};
+
+Json _planned(int seq, String stopId, String arrival, String en, String ja) => {
+  'stop_sequence': seq,
+  'stop_id': stopId,
+  'planned_arrival': arrival,
+  'planned_departure': null,
+  'stop': {
+    'name': {'en': en, 'ja': ja},
+  },
 };
 
 Json _ps(int seq, String stopId, int offset, String en, String ja) => {
@@ -144,10 +190,26 @@ class FakeApi implements BuspilotApi {
   bool _member;
   bool offline = false;
   late List<Json> instances;
+
+  /// Live trips with planned stops (fetchLiveTrips).
+  List<Json> liveTrips = [];
   final subscriptions = <Json>[];
   final calls = <String>[];
   String? deviceLanguage;
   bool deviceDeleted = false;
+
+  /// device.push_token on the server (the engine may clear it).
+  String? pushToken;
+
+  /// National holidays ("2026-11-23" → name). None by default, so tests on
+  /// Monday 2026-11-23 (a holiday) keep their buses.
+  Map<String, Json> holidays = {};
+
+  /// Posts the server returns (null: the demo catalog's).
+  List<Json>? posts;
+
+  /// stop id → [lng, lat] the server returns from stop_location.
+  Map<String, LngLat> stopLocations = {};
 
   /// Thrown by every call, like a server error (not offline).
   Object? serverError;
@@ -157,7 +219,8 @@ class FakeApi implements BuspilotApi {
     if (serverError != null) throw serverError!;
   }
 
-  /// Extra rows RLS would return: another operator's public route and post.
+  /// Extra rows RLS would return from `operator` and `service_calendar`:
+  /// another operator with a public route (not in rpc/my_routes).
   bool withForeignPublicRoute = false;
 
   @override
@@ -168,14 +231,18 @@ class FakeApi implements BuspilotApi {
   }
 
   @override
-  Future<void> touchDevice({required String platform, required String language}) async {
+  Future<bool> touchDevice({required String platform, required String language}) async {
     _check();
     calls.add('touchDevice');
     deviceLanguage = language;
+    return pushToken != null;
   }
 
   @override
-  Future<void> setPushToken(String? token) async => calls.add('pushToken:$token');
+  Future<void> setPushToken(String? token) async {
+    calls.add('pushToken:$token');
+    pushToken = token;
+  }
 
   /// When set, fetchCatalog waits for it (to test overlapping refreshes).
   Completer<void>? catalogGate;
@@ -194,22 +261,17 @@ class FakeApi implements BuspilotApi {
     return const RedeemResult(RedeemStatus.joined, operatorId: opId);
   }
 
+  DateTime? catalogFrom;
+
   @override
-  Future<Json> fetchCatalog() async {
+  Future<Json> fetchCatalog({required DateTime from, required DateTime to}) async {
     catalogCalls++;
+    catalogFrom = from;
     await catalogGate?.future;
     _check();
     calls.add('catalog');
-    if (!_member) {
-      return {
-        'operators': <Json>[],
-        'routes': <Json>[],
-        'memberships': <Json>[],
-        'subscriptions': <Json>[],
-        'posts': <Json>[],
-      };
-    }
-    final json = demoCatalog(subscriptions: List.of(subscriptions));
+    final json = demoCatalog(subscriptions: List.of(subscriptions), member: _member);
+    if (posts != null && _member) json['posts'] = List.of(posts!);
     if (withForeignPublicRoute) {
       (json['operators'] as List).add({
         'id': 'hotel',
@@ -217,23 +279,50 @@ class FakeApi implements BuspilotApi {
         'timezone': 'Asia/Tokyo',
         'default_visibility': 'public',
       });
-      (json['routes'] as List).add({
-        'id': 'shuttle',
+      (json['calendars'] as List).add({
+        'id': 'hotel-daily',
         'operator_id': 'hotel',
-        'name': {'en': 'Hotel shuttle'},
-        'visibility': 'public',
-        'trip_pattern': <Json>[],
-      });
-      (json['posts'] as List).add({
-        'id': 'p-hotel',
-        'operator_id': 'hotel',
-        'route_id': null,
-        'title': {'en': 'Hotel news'},
-        'body': {'en': 'Spa closed'},
-        'published_at': '2026-11-22T00:00:00Z',
+        'weekdays': 127,
+        'start_date': '2026-01-01',
+        'end_date': '2027-12-31',
+        'skip_national_holidays': false,
       });
     }
+    // rpc/service_days for the operators of the device's routes, and
+    // national_holiday, as the server computes them.
+    final routeOps = {for (final r in json['routes'] as List) (r as Map)['operator_id']};
+    final serviceDays = <Json>[];
+    for (final c in (json['calendars'] as List).cast<Json>()) {
+      if (!routeOps.contains(c['operator_id'])) continue;
+      final cal = ServiceCalendar(c);
+      for (var d = from; !d.isAfter(to); d = d.add(const Duration(days: 1))) {
+        final key = formatDate(d);
+        final added = cal.exceptions.any((e) => e.added && e.covers(d));
+        final holiday = holidays.containsKey(key) && cal.skipNationalHolidays && !added;
+        if (cal.runsOn(d) && !holiday) {
+          serviceDays.add({'calendar_id': cal.id, 'service_date': key});
+        }
+      }
+    }
+    json['service_days'] = serviceDays;
+    json['service_days_from'] = formatDate(from);
+    json['service_days_to'] = formatDate(to);
+    json['holidays'] = [
+      for (final e in holidays.entries)
+        if (!parseDate(e.key).isBefore(from) && !parseDate(e.key).isAfter(to))
+          {'date': e.key, 'name': e.value},
+    ];
     return json;
+  }
+
+  @override
+  Future<List<Json>> fetchLiveTrips({
+    required List<String> operatorIds,
+    required List<String> serviceDates,
+  }) async {
+    _check();
+    if (!_member) return const [];
+    return liveTrips.where((t) => operatorIds.contains(t['operator_id'])).toList();
   }
 
   @override
@@ -251,7 +340,13 @@ class FakeApi implements BuspilotApi {
   Future<MapData> fetchMapData({
     required String? shapeId,
     required List<String> stopIds,
-  }) async => const MapData();
+  }) async {
+    _check();
+    calls.add('mapData:${stopIds.join(',')}');
+    return MapData(stops: {
+      for (final id in stopIds) id: ?stopLocations[id],
+    });
+  }
 
   @override
   Future<VehiclePosition?> fetchVehicle(String tripInstanceId) async => null;
@@ -259,11 +354,17 @@ class FakeApi implements BuspilotApi {
   @override
   Future<void> saveSubscription(Subscription s) async {
     _check();
-    calls.add('saveSubscription:${s.stopSequence}');
+    calls.add('saveSubscription:${s.tripInstanceId ?? ''}${s.stopSequence}');
     subscriptions.removeWhere(
-      (e) => e['pattern_id'] == s.patternId && e['stop_sequence'] == s.stopSequence,
+      (e) =>
+          e['pattern_id'] == s.patternId &&
+          e['trip_instance_id'] == s.tripInstanceId &&
+          e['stop_sequence'] == s.stopSequence,
     );
-    subscriptions.add({...s.toJson(), 'id': s.id ?? 'sub-${s.stopSequence}'});
+    subscriptions.add({
+      ...s.toJson(),
+      'id': s.id ?? 'sub-${s.tripInstanceId ?? ''}${s.stopSequence}',
+    });
   }
 
   @override
@@ -283,7 +384,9 @@ class FakeApi implements BuspilotApi {
   @override
   Future<void> deleteMyData() async {
     _check();
+    calls.add('deleteMyDevice');
     deviceDeleted = true;
+    pushToken = null;
     _member = false;
     subscriptions.clear();
   }

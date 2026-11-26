@@ -1,11 +1,13 @@
 import 'dart:async';
 
-
 import 'package:flutter/widgets.dart';
 
+import '../config.dart';
 import '../data/api.dart';
 import '../data/arrivals.dart';
 import '../data/models.dart';
+import '../l10n/app_localizations.dart';
+import '../push/push_alert.dart';
 import '../push/push_service.dart';
 import 'local_store.dart';
 
@@ -26,6 +28,7 @@ class AppState extends ChangeNotifier {
     DateTime Function()? clock,
     String Function()? phoneLanguage,
     this.platform = 'android',
+    this.mapStyleUrl = AppConfig.mapStyleUrl,
   }) : live = live ?? api,
        clock = clock ?? DateTime.now,
        _phoneLanguage = phoneLanguage ?? _systemLanguage;
@@ -42,6 +45,9 @@ class AppState extends ChangeNotifier {
 
   /// "ios" or "android" (device.platform).
   final String platform;
+
+  /// MapLibre style; empty: no maps in this build.
+  final String mapStyleUrl;
 
   StartupState startup = StartupState.loading;
   Catalog catalog = Catalog.empty();
@@ -76,7 +82,19 @@ class AppState extends ChangeNotifier {
   Future<void> setLanguage(String? value) async {
     await store.setLanguage(value);
     notifyListeners();
+    unawaited(_createChannels());
+    // The engine writes notification texts in device.language.
     if (startup == StartupState.ready) unawaited(_touchDevice(force: true));
+  }
+
+  /// Android notification channels, named in the app's language.
+  Future<void> _createChannels() async {
+    if (!push.available) return;
+    final l = lookupAppLocalizations(Locale(language));
+    await push.createChannels({
+      arrivalAlertsChannel: l.channelArrivalAlerts,
+      tripChangesChannel: l.channelTripChanges,
+    });
   }
 
   Future<void> start() async {
@@ -91,6 +109,7 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    unawaited(_createChannels());
     await _connect(hasCache: cached != null);
   }
 
@@ -98,6 +117,7 @@ class AppState extends ChangeNotifier {
   Future<void> finishOnboarding(String? languageCode) async {
     await store.setLanguage(languageCode);
     await store.setOnboarded();
+    unawaited(_createChannels());
     startup = StartupState.loading;
     notifyListeners();
     await _connect(hasCache: false);
@@ -139,8 +159,11 @@ class AppState extends ChangeNotifier {
       return;
     }
     try {
-      await api.touchDevice(platform: platform, language: language);
+      final hasToken = await api.touchDevice(platform: platform, language: language);
       await store.setDeviceTouchedAt(now);
+      // The engine clears a token FCM rejected: register again. (On start
+      // the app registers anyway once the catalog is loaded.)
+      if (!hasToken && _tokenSub != null) unawaited(_registerPushToken());
     } catch (e) {
       // Next time.
       if (e is! OfflineException) debugPrint('Device update failed: $e');
@@ -160,17 +183,19 @@ class AppState extends ChangeNotifier {
         debugPrint('Push token not stored: $e');
       }
     });
-    unawaited(() async {
-      final token = await push.token();
-      if (token != null) {
-        try {
-          await api.setPushToken(token);
-        } catch (e) {
-          // Registered again on the next start.
-          debugPrint('Push token not stored: $e');
-        }
-      }
-    }());
+    unawaited(_registerPushToken());
+  }
+
+  /// Registers with FCM and stores the current token.
+  Future<void> _registerPushToken() async {
+    final token = await push.token();
+    if (token == null) return;
+    try {
+      await api.setPushToken(token);
+    } catch (e) {
+      // Registered again on the next start.
+      debugPrint('Push token not stored: $e');
+    }
   }
 
   /// The app came back to the foreground.
@@ -212,16 +237,33 @@ class AppState extends ChangeNotifier {
     refreshing = true;
     notifyListeners();
     try {
-      final catalogJson = visibleCatalog(await api.fetchCatalog());
+      final (from, to) = serviceDaysRange(clock());
+      final catalogJson = visibleCatalog(await api.fetchCatalog(from: from, to: to));
       final next = Catalog(catalogJson);
       final dates = {
         for (final op in next.operators)
           formatDate(serviceDay(locationOf(op), clock())),
       }.toList();
-      final instanceJson = await live.fetchTripInstances(
-        routeIds: [for (final r in next.routes) r.id],
-        serviceDates: dates,
-      );
+      final results = await Future.wait([
+        live.fetchTripInstances(
+          routeIds: [for (final r in next.routes) r.id],
+          serviceDates: dates,
+        ),
+        live.fetchLiveTrips(
+          operatorIds: [for (final o in next.operators) o.id],
+          serviceDates: dates,
+        ),
+      ]);
+      final routeIds = {for (final r in next.routes) r.id};
+      final members = next.memberOperatorIds;
+      final seen = <String>{};
+      final instanceJson = [
+        ...results[0],
+        // Live trips of joined operators, and of the device's (followed
+        // public) routes; not every live trip a public route has.
+        for (final t in results[1])
+          if (members.contains(t['operator_id']) || routeIds.contains(t['route_id'])) t,
+      ].where((t) => seen.add(t['id'] as String)).toList();
       if (generation != _generation) return;
       catalog = next;
       instances = instanceJson.map(TripInstance.new).toList();
@@ -299,10 +341,45 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Number of posts published after the news screen was last opened.
+  /// Live trips with their own planned stops that are still shown.
+  List<TripInstance> get liveTrips {
+    final now = clock();
+    return [
+      for (final i in instances)
+        if (i.isStandaloneLive && i.visibleAt(now)) i,
+    ];
+  }
+
+  TripInstance? liveTrip(String id) {
+    for (final t in liveTrips) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
+  /// Post categories the rider hid in the news list.
+  Set<PostCategory> get hiddenCategories => store.hiddenCategories;
+
+  Future<void> setCategoryHidden(PostCategory category, bool hidden) async {
+    final next = {...store.hiddenCategories};
+    hidden ? next.add(category) : next.remove(category);
+    await store.setHiddenCategories(next);
+    notifyListeners();
+  }
+
+  /// Posts to show: newest first, without hidden categories.
+  List<Post> get shownPosts {
+    final hidden = hiddenCategories;
+    return [
+      for (final p in catalog.posts)
+        if (!hidden.contains(p.category)) p,
+    ];
+  }
+
+  /// Number of shown posts published after the news screen was last opened.
   int get unreadPosts {
     final read = store.newsReadAt;
-    return catalog.posts
+    return shownPosts
         .where((p) => read == null || p.publishedAt.isAfter(read))
         .length;
   }
@@ -317,6 +394,16 @@ class AppState extends ChangeNotifier {
     _tokenSub?.cancel();
     super.dispose();
   }
+}
+
+/// Dates to load service days for: from the first day of this month to 399
+/// days later (`rpc/service_days` takes at most 400 days), in Japan's time
+/// zone, where all operators are for now. Days outside the range fall back
+/// to the calendar's own rules ([Catalog.runsOn]).
+(DateTime, DateTime) serviceDaysRange(DateTime now) {
+  final today = serviceDay(locationOf(null), now);
+  final from = DateTime.utc(today.year, today.month);
+  return (from, from.add(const Duration(days: 399)));
 }
 
 /// Provides [AppState] to the widget tree.

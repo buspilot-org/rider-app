@@ -124,7 +124,7 @@ void main() {
     await links.close();
   });
 
-  test('visibleCatalog keeps a followed public route of a non-member operator', () {
+  test('visibleCatalog keeps the operator and calendar of a followed public route', () {
     final raw = demoCatalog(member: false, subscriptions: [
       {'id': 's', 'operator_id': opId, 'pattern_id': patternId, 'stop_sequence': 1},
     ]);
@@ -132,8 +132,14 @@ void main() {
     expect(c.routes.map((r) => r.id), [routeId]);
     expect(c.operators.map((o) => o.id), [opId]);
     expect(c.calendars.map((x) => x.id), [calendarId]);
-    // General posts are for members only.
-    expect(c.posts, isEmpty);
+    // Posts are filtered by RLS on the server (general posts for members
+    // only), not here.
+    final withPost = demoCatalog(member: false, subscriptions: [
+      {'id': 's', 'operator_id': opId, 'pattern_id': patternId, 'stop_sequence': 1},
+    ])..['posts'] = [
+        {'id': 'r1', 'operator_id': opId, 'route_id': routeId, 'published_at': '2026-11-23T00:00:00Z'},
+      ];
+    expect(Catalog(visibleCatalog(withPost)).posts.map((p) => p.id), ['r1']);
 
     final none = Catalog(visibleCatalog(demoCatalog(member: false)));
     expect(none.routes, isEmpty);

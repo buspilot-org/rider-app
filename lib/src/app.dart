@@ -6,10 +6,13 @@ import 'package:material_ui/material_ui.dart';
 
 import 'data/invite_link.dart';
 import 'l10n/app_localizations.dart';
+import 'push/push_alert.dart';
 import 'state/app_state.dart';
 import 'ui/home_screen.dart';
 import 'ui/join_screen.dart';
 import 'ui/language_screen.dart';
+import 'ui/live_trip_screen.dart';
+import 'ui/route_screen.dart';
 import 'ui/theme.dart';
 import 'ui/widgets.dart';
 
@@ -27,8 +30,14 @@ class RiderApp extends StatefulWidget {
 
 class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
   final _navigator = GlobalKey<NavigatorState>();
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<Uri>? _linkSub;
+  StreamSubscription<PushAlert>? _foregroundSub;
+  StreamSubscription<PushAlert>? _openedSub;
   String? _pendingCode;
+
+  /// A tapped notification, opened once the app is ready.
+  PushAlert? _pendingAlert;
   Uri? _lastUri;
   DateTime? _lastAt;
 
@@ -40,6 +49,12 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     state.addListener(_maybeOpenPending);
     _linkSub = widget.links?.listen(_onLink);
+    final push = state.push;
+    _foregroundSub = push.foregroundAlerts.listen(_onForegroundAlert);
+    _openedSub = push.openedAlerts.listen(_onOpenedAlert);
+    push.initialAlert().then((a) {
+      if (a != null && mounted) _onOpenedAlert(a);
+    });
   }
 
   @override
@@ -47,6 +62,8 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     state.removeListener(_maybeOpenPending);
     _linkSub?.cancel();
+    _foregroundSub?.cancel();
+    _openedSub?.cancel();
     super.dispose();
   }
 
@@ -70,12 +87,81 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
     _maybeOpenPending();
   }
 
-  /// Opens the join screen for a link once the app is ready (after the
-  /// language was chosen and the device signed in).
+  /// The system shows nothing while the app is in the foreground: show the
+  /// server's text in a snack bar with a button to the stop, and refresh.
+  void _onForegroundAlert(PushAlert alert) {
+    unawaited(state.refresh());
+    final context = _navigator.currentContext;
+    final messenger = _messenger.currentState;
+    final text = [?alert.title, ?alert.body].join('\n');
+    if (context == null || messenger == null || text.isEmpty) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(text),
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: AppLocalizations.of(context).alertShow,
+            onPressed: () => _onOpenedAlert(alert),
+          ),
+        ),
+      );
+  }
+
+  void _onOpenedAlert(PushAlert alert) {
+    _pendingAlert = alert;
+    _maybeOpenPending();
+  }
+
+  /// Opens the route (or live trip) of a notification at its stop. Loads
+  /// fresh data first when the catalog does not have it yet (the app was
+  /// started from the notification, or the trip is new).
+  Future<void> _openAlert(PushAlert alert) async {
+    Widget? screen() {
+      final catalog = state.catalog;
+      final seq = alert.stopSequence;
+      if (alert.patternId case final patternId?) {
+        final found = catalog.pattern(patternId);
+        if (found == null) return null;
+        return RouteScreen(
+          routeId: found.$1.id,
+          patternId: patternId,
+          highlightSequence: seq,
+          tripInstanceId: alert.tripInstanceId,
+        );
+      }
+      if (alert.tripInstanceId case final tripId?) {
+        if (state.liveTrip(tripId) == null) return null;
+        return LiveTripScreen(tripInstanceId: tripId, highlightSequence: seq);
+      }
+      return null;
+    }
+
+    var target = screen();
+    if (target == null) {
+      await state.refresh();
+      target = screen();
+    }
+    if (target == null) return; // Not visible any more: stay on home.
+    final page = target;
+    await _navigator.currentState?.push(MaterialPageRoute(builder: (_) => page));
+  }
+
+  /// Opens the join screen for a link, or the stop of a tapped
+  /// notification, once the app is ready (after the language was chosen and
+  /// the device signed in).
   void _maybeOpenPending() {
-    final code = _pendingCode;
     final nav = _navigator.currentState;
-    if (code == null || nav == null || state.startup != StartupState.ready) return;
+    if (nav == null || state.startup != StartupState.ready) return;
+    final alert = _pendingAlert;
+    if (alert != null) {
+      _pendingAlert = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openAlert(alert));
+      WidgetsBinding.instance.scheduleFrame();
+    }
+    final code = _pendingCode;
+    if (code == null) return;
     _pendingCode = null;
     // After the frame that shows home, so the join screen lands on top.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -96,6 +182,7 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
           final chosen = state.chosenLanguage;
           return MaterialApp(
             navigatorKey: _navigator,
+            scaffoldMessengerKey: _messenger,
             onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,
             debugShowCheckedModeBanner: false,
             theme: buildTheme(Brightness.light),

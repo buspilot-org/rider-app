@@ -589,7 +589,7 @@ abstract class AppLocalizations {
   /// No description provided for @calendarHolidaysNote.
   ///
   /// In en, this message translates to:
-  /// **'National holidays are not marked yet; on those days there is usually no bus.'**
+  /// **'No bus on national holidays unless it is listed as an extra day.'**
   String get calendarHolidaysNote;
 
   /// No description provided for @previousMonth.
@@ -661,7 +661,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyText.
   ///
   /// In en, this message translates to:
-  /// **'Buspilot needs no account. The server stores only an anonymous ID for this phone, its language, a push token (once notifications are on) and the stops you follow. It never stores your name, email, phone number or location. Everything is deleted 90 days after you last opened the app. The button below deletes your bus services, stops and push token right away; the anonymous ID itself is removed within 90 days.'**
+  /// **'Buspilot needs no account. The server stores only an anonymous ID for this phone, its language, a push token (once notifications are on) and the stops you follow. It never stores your name, email, phone number or location. Everything is deleted 90 days after you last opened the app. The button below deletes all of it from the server and from this phone right away.'**
   String get privacyText;
 
   /// No description provided for @deleteData.
@@ -679,7 +679,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This removes your bus services, followed stops and alert settings from the server and from this phone. You will need the invite codes again to rejoin.'**
+  /// **'This removes this phone\'s anonymous ID, your bus services, followed stops and alert settings from the server and from this phone. You will need the invite codes again to rejoin.'**
   String get deleteConfirmBody;
 
   /// No description provided for @settingsAbout.
@@ -717,6 +717,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get retry;
+
+  /// No description provided for @channelArrivalAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrival alerts'**
+  String get channelArrivalAlerts;
+
+  /// No description provided for @channelTripChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Delays and cancellations'**
+  String get channelTripChanges;
+
+  /// No description provided for @alertShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get alertShow;
+
+  /// No description provided for @postCategoryCancellation.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancellation'**
+  String get postCategoryCancellation;
+
+  /// No description provided for @postCategoryDelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Delay'**
+  String get postCategoryDelay;
+
+  /// No description provided for @postCategoryGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get postCategoryGeneral;
+
+  /// No description provided for @postCategoryEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Event'**
+  String get postCategoryEvent;
+
+  /// No description provided for @newsCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get newsCategories;
+
+  /// No description provided for @newsCategoriesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which announcements to show. This applies to the list on this phone only.'**
+  String get newsCategoriesNote;
+
+  /// No description provided for @newsHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 announcement hidden} other{{count} announcements hidden}}'**
+  String newsHidden(int count);
+
+  /// No description provided for @calendarHolidaysHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'National holidays'**
+  String get calendarHolidaysHeader;
+
+  /// No description provided for @miniMapFollowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow this stop to see it on a small map.'**
+  String get miniMapFollowHint;
+
+  /// No description provided for @miniMapLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'No map for this stop: the map shows only the first two stops you follow per bus service.'**
+  String get miniMapLimit;
+
+  /// No description provided for @liveTripsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra trips'**
+  String get liveTripsHeader;
+
+  /// No description provided for @liveTripVisibleUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown until {time}'**
+  String liveTripVisibleUntil(String time);
+
+  /// No description provided for @liveTripNextStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Next: {stop}'**
+  String liveTripNextStop(String stop);
+
+  /// No description provided for @liveTripGone.
+  ///
+  /// In en, this message translates to:
+  /// **'This trip is no longer shown.'**
+  String get liveTripGone;
 }
 
 class _AppLocalizationsDelegate

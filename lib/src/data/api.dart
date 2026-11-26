@@ -44,6 +44,15 @@ abstract class LiveSource {
     required List<String> serviceDates,
   });
 
+  /// Live trips with their own planned stops (`kind = live`, no pattern) of
+  /// [operatorIds]: shown until `visible_until`, or on [serviceDates] when
+  /// that is not set. With planned stops (`trip_instance_stop`, stop names)
+  /// and stop events.
+  Future<List<Json>> fetchLiveTrips({
+    required List<String> operatorIds,
+    required List<String> serviceDates,
+  });
+
   /// The bus of an active trip, if the device may see it on a map.
   Future<VehiclePosition?> fetchVehicle(String tripInstanceId);
 }
@@ -63,17 +72,20 @@ abstract class BuspilotApi implements LiveSource {
   Future<String> ensureSignedIn();
 
   /// Creates or refreshes this device's row (`last_seen_at`, language,
-  /// platform). Inactive devices are deleted after 90 days.
-  Future<void> touchDevice({required String platform, required String language});
+  /// platform). Inactive devices are deleted after 90 days. Returns whether
+  /// the row has a push token (the engine clears an invalid one).
+  Future<bool> touchDevice({required String platform, required String language});
 
   /// Stores the push token (null removes it).
   Future<void> setPushToken(String? token);
 
   Future<RedeemResult> redeemInviteCode(String code);
 
-  /// Operators, routes with patterns, stops and trips, calendars,
-  /// memberships, subscriptions and posts, as raw JSON for [Catalog].
-  Future<Json> fetchCatalog();
+  /// Operators, the device's routes (`rpc/my_routes`) with patterns, stops
+  /// and trips, calendars with their service days and the national holidays
+  /// from [from] to [to] (at most 400 days), memberships, subscriptions and
+  /// posts, as raw JSON for [Catalog].
+  Future<Json> fetchCatalog({required DateTime from, required DateTime to});
 
   /// Map geometry of a pattern (only returned at map level).
   Future<MapData> fetchMapData({
@@ -81,7 +93,8 @@ abstract class BuspilotApi implements LiveSource {
     required List<String> stopIds,
   });
 
-  /// Creates or updates a subscription (one per pattern and stop sequence).
+  /// Creates or updates a subscription (one per pattern or live trip and
+  /// stop sequence).
   Future<void> saveSubscription(Subscription subscription);
 
   Future<void> deleteSubscription(String id);
@@ -90,7 +103,8 @@ abstract class BuspilotApi implements LiveSource {
   /// subscriptions the device can no longer see.
   Future<void> leaveOperator(String operatorId);
 
-  /// Deletes the device row (memberships and subscriptions follow by
-  /// cascade) and signs out.
+  /// Deletes this device on the server (`rpc/delete_my_device`: the
+  /// anonymous user, device, memberships, subscriptions and alert log) and
+  /// signs out.
   Future<void> deleteMyData();
 }

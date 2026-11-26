@@ -290,7 +290,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get calendarChanges => '変更';
 
   @override
-  String get calendarHolidaysNote => '祝日はまだ表示されません。祝日は通常運休です。';
+  String get calendarHolidaysNote => '臨時運行日として表示されている日を除き、祝日はバスが運行しません。';
 
   @override
   String get previousMonth => '前の月';
@@ -329,7 +329,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get privacyText =>
-      'Buspilotにアカウントは必要ありません。サーバーに保存されるのは、この端末の匿名ID、言語、プッシュトークン（通知を有効にした場合）、フォローしている停留所だけです。名前・メールアドレス・電話番号・位置情報は保存しません。最後にアプリを開いてから90日後にすべて削除されます。下のボタンでバスサービス・停留所・プッシュトークンをすぐに削除できます（匿名ID自体は90日以内に削除されます）。';
+      'Buspilotにアカウントは必要ありません。サーバーに保存されるのは、この端末の匿名ID、言語、プッシュトークン（通知を有効にした場合）、フォローしている停留所だけです。名前・メールアドレス・電話番号・位置情報は保存しません。最後にアプリを開いてから90日後にすべて削除されます。下のボタンで、これらすべてをサーバーとこの端末からすぐに削除できます。';
 
   @override
   String get deleteData => 'データを削除';
@@ -339,7 +339,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get deleteConfirmBody =>
-      'バスサービス、フォロー中の停留所、通知設定をサーバーとこの端末から削除します。再度参加するには招待コードが必要です。';
+      'この端末の匿名ID、バスサービス、フォロー中の停留所、通知設定をサーバーとこの端末から削除します。再度参加するには招待コードが必要です。';
 
   @override
   String get settingsAbout => 'このアプリについて';
@@ -358,4 +358,62 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get retry => '再試行';
+
+  @override
+  String get channelArrivalAlerts => '到着のお知らせ';
+
+  @override
+  String get channelTripChanges => '遅延・運休';
+
+  @override
+  String get alertShow => '表示';
+
+  @override
+  String get postCategoryCancellation => '運休';
+
+  @override
+  String get postCategoryDelay => '遅延';
+
+  @override
+  String get postCategoryGeneral => 'お知らせ';
+
+  @override
+  String get postCategoryEvent => '行事';
+
+  @override
+  String get newsCategories => 'カテゴリ';
+
+  @override
+  String get newsCategoriesNote => '表示するお知らせを選びます。この端末の一覧にのみ反映されます。';
+
+  @override
+  String newsHidden(int count) {
+    return '$count件のお知らせを非表示中';
+  }
+
+  @override
+  String get calendarHolidaysHeader => '祝日';
+
+  @override
+  String get miniMapFollowHint => 'この停留所をフォローすると、小さな地図で場所を確認できます。';
+
+  @override
+  String get miniMapLimit =>
+      'この停留所の地図はありません。地図に表示されるのは、バスサービスごとに最初にフォローした2つの停留所だけです。';
+
+  @override
+  String get liveTripsHeader => '臨時便';
+
+  @override
+  String liveTripVisibleUntil(String time) {
+    return '$timeまで表示';
+  }
+
+  @override
+  String liveTripNextStop(String stop) {
+    return '次: $stop';
+  }
+
+  @override
+  String get liveTripGone => 'この便の表示は終了しました。';
 }
