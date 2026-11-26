@@ -178,7 +178,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String positionUnknownSince(String time) {
-    return 'Busposition unbekannt seit $time';
+    return 'Wir prüfen gerade, wo der Bus ist (seit $time). Bitte warte einen Moment.';
   }
 
   @override

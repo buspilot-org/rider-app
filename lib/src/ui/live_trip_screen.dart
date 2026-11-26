@@ -78,7 +78,7 @@ class _LiveTripScreenState extends State<LiveTripScreen> with Polling {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
                 child: Text(
                   l.positionUnknownSince(formatTime(trip.offRouteSince!, op)),
-                  style: TextStyle(color: scheme.error),
+                  style: TextStyle(color: context.brand.unknownText),
                 ),
               ),
             const SizedBox(height: 8),

@@ -367,7 +367,7 @@ abstract class AppLocalizations {
   /// No description provided for @positionUnknownSince.
   ///
   /// In en, this message translates to:
-  /// **'Bus position unknown since {time}'**
+  /// **'We are checking where the bus is (since {time}). Please wait a moment.'**
   String positionUnknownSince(String time);
 
   /// No description provided for @routeGone.

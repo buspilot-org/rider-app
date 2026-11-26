@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../data/models.dart';
 import '../state/app_state.dart';
+import 'theme.dart';
 import 'widgets.dart';
 
 /// Announcements from the operators (newest first) and their links.
@@ -196,12 +197,17 @@ class CategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final urgent = category == PostCategory.cancellation || category == PostCategory.delay;
-    final fg = urgent ? scheme.onErrorContainer : scheme.onSecondaryContainer;
+    // Cancellations in the error colours; delays in the brand's delayed tint.
+    final bp = context.brand;
+    final (bg, fg) = switch (category) {
+      PostCategory.cancellation => (scheme.errorContainer, scheme.onErrorContainer),
+      PostCategory.delay => (bp.delayedTint, bp.delayedText),
+      _ => (scheme.secondaryContainer, scheme.onSecondaryContainer),
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: urgent ? scheme.errorContainer : scheme.secondaryContainer,
+        color: bg,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(

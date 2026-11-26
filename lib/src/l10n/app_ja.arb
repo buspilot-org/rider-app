@@ -20,7 +20,7 @@
   "joinRevoked": "事業者によりアクセスが終了されました。新しい招待を依頼してください。",
   "joinRateLimited": "試行回数が多すぎます。1時間後にもう一度お試しください。",
   "offlineError": "接続できません。オンラインになってからもう一度お試しください。",
-  "genericError": "エラーが発生しました。もう一度お試しください。",
+  "genericError": "うまくいきませんでした。もう一度お試しください。",
 
   "myStops": "今日のマイ停留所",
   "routesHeader": "路線",
@@ -50,7 +50,7 @@
   "phaseCancelled": "運休",
   "tripAt": "{time} 発の便",
   "liveTrip": "臨時便",
-  "positionUnknownSince": "{time} からバスの位置が不明です",
+  "positionUnknownSince": "バスの位置を確認しています（{time} から）。しばらくお待ちください。",
   "routeGone": "この路線は利用できなくなりました。",
   "mapUnavailable": "地図は利用できません",
 
@@ -117,10 +117,10 @@
   "retry": "再試行",
 
   "channelArrivalAlerts": "到着のお知らせ",
-  "channelTripChanges": "遅延・運休",
+  "channelTripChanges": "遅れ・運休のお知らせ",
   "alertShow": "表示",
   "postCategoryCancellation": "運休",
-  "postCategoryDelay": "遅延",
+  "postCategoryDelay": "遅れ",
   "postCategoryGeneral": "お知らせ",
   "postCategoryEvent": "行事",
   "newsCategories": "カテゴリ",

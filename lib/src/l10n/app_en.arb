@@ -64,7 +64,7 @@
   "tripAt": "{time} trip",
   "@tripAt": {"placeholders": {"time": {"type": "String"}}},
   "liveTrip": "Extra trip",
-  "positionUnknownSince": "Bus position unknown since {time}",
+  "positionUnknownSince": "We are checking where the bus is (since {time}). Please wait a moment.",
   "@positionUnknownSince": {"placeholders": {"time": {"type": "String"}}},
   "routeGone": "This route is no longer available.",
   "mapUnavailable": "Map not available",

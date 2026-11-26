@@ -50,7 +50,7 @@
   "phaseCancelled": "Fällt aus",
   "tripAt": "Fahrt um {time}",
   "liveTrip": "Zusatzfahrt",
-  "positionUnknownSince": "Busposition unbekannt seit {time}",
+  "positionUnknownSince": "Wir prüfen gerade, wo der Bus ist (seit {time}). Bitte warte einen Moment.",
   "routeGone": "Diese Linie ist nicht mehr verfügbar.",
   "mapUnavailable": "Karte nicht verfügbar",
 
