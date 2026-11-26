@@ -42,6 +42,8 @@ const _stopIcon = 'assets/markers/stop.png';
 
 /// A bus position older than this is shown as "no signal" (位置不明): grey
 /// tile, no dot. The same default as the admin console.
+/// Measured with the phone's clock: a clock more than this fast shows every
+/// bus as no signal (the admin console has the same limit with the browser's).
 const staleVehicleAfter = Duration(minutes: 2);
 
 /// The bus marker for [vehicle] at [now]: no signal when the position is
