@@ -210,7 +210,7 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
                 child: Text(
                   l.positionUnknownSince(formatTime(instance!.offRouteSince!, op)),
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: TextStyle(color: context.brand.unknownText),
                 ),
               ),
             const SizedBox(height: 8),

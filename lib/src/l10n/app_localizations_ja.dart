@@ -70,7 +70,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get offlineError => '接続できません。オンラインになってからもう一度お試しください。';
 
   @override
-  String get genericError => 'エラーが発生しました。もう一度お試しください。';
+  String get genericError => 'うまくいきませんでした。もう一度お試しください。';
 
   @override
   String get myStops => '今日のマイ停留所';
@@ -171,7 +171,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String positionUnknownSince(String time) {
-    return '$time からバスの位置が不明です';
+    return 'バスの位置を確認しています（$time から）。しばらくお待ちください。';
   }
 
   @override
@@ -363,7 +363,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get channelArrivalAlerts => '到着のお知らせ';
 
   @override
-  String get channelTripChanges => '遅延・運休';
+  String get channelTripChanges => '遅れ・運休のお知らせ';
 
   @override
   String get alertShow => '表示';
@@ -372,7 +372,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get postCategoryCancellation => '運休';
 
   @override
-  String get postCategoryDelay => '遅延';
+  String get postCategoryDelay => '遅れ';
 
   @override
   String get postCategoryGeneral => 'お知らせ';

@@ -33,6 +33,8 @@ ThemeData buildTheme(Brightness brightness) {
   return base.copyWith(
     scaffoldBackgroundColor: bp.background,
     textTheme: _brandText(base.textTheme),
+    // Counts and dots in yamabuki, not red (red reads as 'broken').
+    badgeTheme: BadgeThemeData(backgroundColor: bp.accent, textColor: bp.onAccent),
     cardTheme: CardThemeData(color: bp.surface, margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6)),
     extensions: [bp],
   );

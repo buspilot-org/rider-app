@@ -12,6 +12,7 @@ import 'live_trip_screen.dart';
 import 'news_screen.dart';
 import 'route_screen.dart';
 import 'settings_screen.dart';
+import 'theme.dart';
 import 'widgets.dart';
 
 /// Refreshes the app state every [interval] while the screen is shown and
@@ -137,7 +138,14 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l.appTitle),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const BrandMark(),
+            const SizedBox(width: 8),
+            Flexible(child: Text(l.appTitle, overflow: TextOverflow.ellipsis)),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: l.newsTitle,
@@ -351,7 +359,7 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.all(32),
       child: Column(
         children: [
-          Icon(Icons.directions_bus_outlined, size: 64, color: Theme.of(context).colorScheme.primary),
+          const BrandMark(size: 64),
           const SizedBox(height: 16),
           Text(l.homeEmptyTitle, style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
           const SizedBox(height: 8),
@@ -402,7 +410,12 @@ class StopCard extends StatelessWidget {
     final visit = next.next;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final important = visit?.kind == VisitKind.cancelled || visit?.kind == VisitKind.delayed;
+    // Cancelled in the error colour; delays in the brand's delayed colour, never red.
+    final statusColor = switch (visit?.kind) {
+      VisitKind.cancelled => scheme.error,
+      VisitKind.delayed => context.brand.delayedText,
+      _ => null,
+    };
     final offRoute = visit?.instance?.offRouteSince;
 
     return Card(
@@ -453,14 +466,14 @@ class StopCard extends StatelessWidget {
                 children: [
                   Icon(
                     visitIcon(visit?.kind),
-                    color: important ? scheme.error : scheme.primary,
+                    color: statusColor ?? scheme.primary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       visitText(context, visit, op, now),
                       style: theme.textTheme.headlineSmall?.copyWith(
-                        color: important ? scheme.error : null,
+                        color: statusColor,
                       ),
                     ),
                   ),
@@ -488,7 +501,7 @@ class StopCard extends StatelessWidget {
               if (offRoute != null)
                 Text(
                   l.positionUnknownSince(formatTime(offRoute, op)),
-                  style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
+                  style: theme.textTheme.bodySmall?.copyWith(color: context.brand.unknownText),
                 ),
               if (subscription.isMuted(now))
                 Text(

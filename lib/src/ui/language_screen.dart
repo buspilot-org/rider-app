@@ -54,7 +54,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
           if (widget.onboarding) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Icon(Icons.directions_bus, size: 64, color: Theme.of(context).colorScheme.primary),
+              child: const BrandMark(size: 64),
             ),
             const SizedBox(height: 16),
             Padding(

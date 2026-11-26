@@ -80,6 +80,7 @@ flutter:
   # markers are not covered by the AGPL (all rights reserved); see README.
   assets:
     - assets/markers/
+    - assets/brand/
     - assets/fonts/OFL.txt
 
   # Brand font, bundled so that no font requests go to a third party.

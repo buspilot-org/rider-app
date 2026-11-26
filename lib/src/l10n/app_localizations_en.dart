@@ -175,7 +175,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String positionUnknownSince(String time) {
-    return 'Bus position unknown since $time';
+    return 'We are checking where the bus is (since $time). Please wait a moment.';
   }
 
   @override

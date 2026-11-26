@@ -177,12 +177,14 @@ class UpdatedLine extends StatelessWidget {
     final stale = state.offline || state.serverError;
     final scheme = Theme.of(context).colorScheme;
     final l = context.l10n;
-    final color = stale ? scheme.error : scheme.onSurfaceVariant;
+    // Calm, not red: the data is only older. The text stays muted; the icon
+    // takes the brand's 'unknown' colour so the state is still visible.
+    final color = scheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: Row(
         children: [
-          Icon(stale ? Icons.cloud_off : Icons.update, size: 16, color: color),
+          Icon(stale ? Icons.cloud_off : Icons.update, size: 16, color: stale ? context.brand.unknown : color),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -209,4 +211,15 @@ void showError(BuildContext context, Object error) {
       ? l.offlineError
       : l.genericError;
   messenger.showSnackBar(SnackBar(content: Text(text)));
+}
+
+/// The Buspilot symbol ("Arrival"). Decorative: the name is always next to it.
+class BrandMark extends StatelessWidget {
+  const BrandMark({super.key, this.size = 28});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) =>
+      Image.asset('assets/brand/symbol.png', width: size, height: size, excludeFromSemantics: true);
 }
