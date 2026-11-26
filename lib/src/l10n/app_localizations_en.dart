@@ -303,7 +303,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get calendarHolidaysNote =>
-      'National holidays are not marked yet; on those days there is usually no bus.';
+      'No bus on national holidays unless it is listed as an extra day.';
 
   @override
   String get previousMonth => 'Previous month';
@@ -343,7 +343,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyText =>
-      'Buspilot needs no account. The server stores only an anonymous ID for this phone, its language, a push token (once notifications are on) and the stops you follow. It never stores your name, email, phone number or location. Everything is deleted 90 days after you last opened the app. The button below deletes your bus services, stops and push token right away; the anonymous ID itself is removed within 90 days.';
+      'Buspilot needs no account. The server stores only an anonymous ID for this phone, its language, a push token (once notifications are on) and the stops you follow. It never stores your name, email, phone number or location. Everything is deleted 90 days after you last opened the app. The button below deletes all of it from the server and from this phone right away.';
 
   @override
   String get deleteData => 'Delete my data';
@@ -353,7 +353,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteConfirmBody =>
-      'This removes your bus services, followed stops and alert settings from the server and from this phone. You will need the invite codes again to rejoin.';
+      'This removes this phone\'s anonymous ID, your bus services, followed stops and alert settings from the server and from this phone. You will need the invite codes again to rejoin.';
 
   @override
   String get settingsAbout => 'About';
@@ -373,4 +373,77 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retry => 'Try again';
+
+  @override
+  String get channelArrivalAlerts => 'Arrival alerts';
+
+  @override
+  String get channelTripChanges => 'Delays and cancellations';
+
+  @override
+  String get alertShow => 'Show';
+
+  @override
+  String get postCategoryCancellation => 'Cancellation';
+
+  @override
+  String get postCategoryDelay => 'Delay';
+
+  @override
+  String get postCategoryGeneral => 'General';
+
+  @override
+  String get postCategoryEvent => 'Event';
+
+  @override
+  String get newsCategories => 'Categories';
+
+  @override
+  String get newsCategoriesNote =>
+      'Choose which announcements to show. This applies to the list on this phone only.';
+
+  @override
+  String newsHidden(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count announcements hidden',
+      one: '1 announcement hidden',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarHolidaysHeader => 'National holidays';
+
+  @override
+  String get miniMapFollowHint =>
+      'Stops you follow can show on a small map, at most two per bus service.';
+
+  @override
+  String get miniMapLimit =>
+      'No map for this stop. A small map shows at most two stops you follow per bus service; a place stays taken for 30 days after you unfollow a stop.';
+
+  @override
+  String get liveTripsHeader => 'Extra trips';
+
+  @override
+  String liveTripVisibleUntil(String time) {
+    return 'Shown until $time';
+  }
+
+  @override
+  String liveTripNextStop(String stop) {
+    return 'Next: $stop';
+  }
+
+  @override
+  String get liveTripNoAlerts =>
+      'Alerts for extra trips are not sent yet. The stop shows on your home screen with its arrival time.';
+
+  @override
+  String get liveTripEnded => 'An extra trip you followed is no longer shown';
+
+  @override
+  String get liveTripGone => 'This trip is no longer shown.';
 }

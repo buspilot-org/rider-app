@@ -1,3 +1,5 @@
+import 'push_alert.dart';
+
 /// Push notifications. The engine sends them through FCM (APNs through FCM on
 /// iOS); the app only registers its token in `device.push_token`.
 ///
@@ -22,6 +24,22 @@ abstract class PushService {
 
   /// New tokens after a refresh.
   Stream<String> get tokenRefresh;
+
+  /// Creates (or renames) the Android notification channels the engine
+  /// sends to, with names in the app's language. [names]: channel id →
+  /// name. Does nothing elsewhere.
+  Future<void> createChannels(Map<String, String> names);
+
+  /// Alerts that arrive while the app is in the foreground (the system
+  /// shows nothing then).
+  Stream<PushAlert> get foregroundAlerts;
+
+  /// Notifications the user tapped while the app was running in the
+  /// background.
+  Stream<PushAlert> get openedAlerts;
+
+  /// The notification that started the app, if any.
+  Future<PushAlert?> initialAlert();
 }
 
 class NoPushService implements PushService {
@@ -44,4 +62,16 @@ class NoPushService implements PushService {
 
   @override
   Stream<String> get tokenRefresh => const Stream.empty();
+
+  @override
+  Future<void> createChannels(Map<String, String> names) async {}
+
+  @override
+  Stream<PushAlert> get foregroundAlerts => const Stream.empty();
+
+  @override
+  Stream<PushAlert> get openedAlerts => const Stream.empty();
+
+  @override
+  Future<PushAlert?> initialAlert() async => null;
 }

@@ -123,7 +123,8 @@ List<Visit> visitsAt({
     for (final i in todays) {
       if (i.tripId == trip.id) instance = i;
     }
-    final runs = catalog.calendar(trip.calendarId)?.runsOn(day) ?? false;
+    final calendar = catalog.calendar(trip.calendarId);
+    final runs = calendar != null && catalog.runsOn(calendar, day);
     if (!runs && instance == null) continue;
     if (instance != null) used.add(instance.id);
     final scheduled = atOffset(loc, day, trip.startTime + stop.arrivalOffset);
@@ -222,6 +223,26 @@ NextArrival nextArrival({
   }
   next ??= visits.isEmpty ? null : visits.last;
   return NextArrival(next: next, visits: visits);
+}
+
+/// The visit of a live trip with planned stops at its stop [sequence]: the
+/// planned time is the "scheduled" time, the stop event gives state and ETA.
+Visit? liveVisitAt(TripInstance trip, int sequence, DateTime now) {
+  final stop = trip.plannedStopAt(sequence);
+  if (stop == null) return null;
+  return _visit(stop.planned, null, trip, sequence, now);
+}
+
+/// The next stop of a live trip that the bus has not reached yet, with its
+/// visit; null when all stops are done or the trip is cancelled.
+({PlannedStop stop, Visit visit})? nextLiveStop(TripInstance trip, DateTime now) {
+  for (final s in trip.plannedStops) {
+    final v = liveVisitAt(trip, s.sequence, now);
+    if (v == null) continue;
+    if (v.kind == VisitKind.cancelled) return null;
+    if (v.kind != VisitKind.passed) return (stop: s, visit: v);
+  }
+  return null;
 }
 
 /// The trip instance to show on the route screen by default: an active one,

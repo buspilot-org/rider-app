@@ -7,15 +7,18 @@ import '../state/app_state.dart';
 import 'stop_mini_map.dart';
 import 'widgets.dart';
 
-/// Follow a stop and set its alerts (`subscription`).
+/// Follow a stop and set its alerts (`subscription`): a stop of a pattern
+/// ([patternId]) or a planned stop of a live trip ([tripInstanceId]).
 class AlertSettingsScreen extends StatefulWidget {
   const AlertSettingsScreen({
     super.key,
-    required this.patternId,
+    this.patternId,
+    this.tripInstanceId,
     required this.stopSequence,
-  });
+  }) : assert((patternId == null) != (tripInstanceId == null));
 
-  final String patternId;
+  final String? patternId;
+  final String? tripInstanceId;
   final int stopSequence;
 
   @override
@@ -36,18 +39,62 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
   bool _busy = false;
   bool _initialised = false;
 
+  /// The followed stop, resolved from the catalog or the live trips.
+  ({
+    String operatorId,
+    BusRoute? route,
+    String subtitle,
+    String stopName,
+    String? stopId,
+  })?
+  _target(AppState state) {
+    final lang = context.lang;
+    final patternId = widget.patternId;
+    if (patternId != null) {
+      final found = state.catalog.pattern(patternId);
+      if (found == null) return null;
+      final stop = found.$2.stopAt(widget.stopSequence);
+      return (
+        operatorId: found.$1.operatorId,
+        route: found.$1,
+        subtitle: found.$2.name,
+        stopName: stop?.stopName.resolve(lang) ?? '',
+        stopId: stop?.stopId,
+      );
+    }
+    final trip = state.liveTrip(widget.tripInstanceId!);
+    if (trip == null || trip.operatorId == null) return null;
+    final stop = trip.plannedStopAt(widget.stopSequence);
+    final title = trip.title.resolve(lang);
+    return (
+      operatorId: trip.operatorId!,
+      route: trip.routeId == null ? null : state.catalog.route(trip.routeId!),
+      subtitle: title.isEmpty ? context.l10n.liveTrip : title,
+      stopName: stop?.stopName.resolve(lang) ?? '',
+      stopId: stop?.stopId,
+    );
+  }
+
+  Subscription? _find(AppState state) => widget.patternId != null
+      ? state.catalog.subscriptionFor(widget.patternId!, widget.stopSequence)
+      : state.catalog.liveSubscriptionFor(
+          widget.tripInstanceId!,
+          widget.stopSequence,
+        );
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_initialised) return;
     _initialised = true;
     final state = AppScope.read(context);
-    final found = state.catalog.pattern(widget.patternId);
-    _existing = state.catalog.subscriptionFor(widget.patternId, widget.stopSequence);
-    _draft = _existing ??
+    _existing = _find(state);
+    _draft =
+        _existing ??
         Subscription(
-          operatorId: found?.$1.operatorId ?? '',
+          operatorId: _target(state)?.operatorId ?? '',
           patternId: widget.patternId,
+          tripInstanceId: widget.tripInstanceId,
           stopSequence: widget.stopSequence,
         );
     final muted = _draft.mutedUntil;
@@ -59,24 +106,30 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
 
   Operator? get _operator {
     final state = AppScope.read(context);
-    final found = state.catalog.pattern(widget.patternId);
-    return state.catalog.operator(found?.$1.operatorId ?? '');
+    return state.catalog.operator(_target(state)?.operatorId ?? '');
   }
 
   tz.Location get _loc => locationOf(_operator);
 
   /// End of the service day of [day] in the operator's time zone.
-  DateTime _endOf(DateTime day) =>
-      tz.TZDateTime(_loc, day.year, day.month, day.day).add(const Duration(days: 1));
+  DateTime _endOf(DateTime day) => tz.TZDateTime(
+    _loc,
+    day.year,
+    day.month,
+    day.day,
+  ).add(const Duration(days: 1));
 
   Subscription _withPause() {
     final now = AppScope.read(context).clock();
     return switch (_pause) {
       _Pause.off => _draft.copyWith(clearMute: true),
-      _Pause.today => _draft.copyWith(mutedUntil: _endOf(serviceDay(_loc, now))),
-      _Pause.until => _pauseUntil == null
-          ? _draft.copyWith(clearMute: true)
-          : _draft.copyWith(mutedUntil: _pauseUntil),
+      _Pause.today => _draft.copyWith(
+        mutedUntil: _endOf(serviceDay(_loc, now)),
+      ),
+      _Pause.until =>
+        _pauseUntil == null
+            ? _draft.copyWith(clearMute: true)
+            : _draft.copyWith(mutedUntil: _pauseUntil),
     };
   }
 
@@ -87,7 +140,11 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
       context: context,
       firstDate: DateTime(today.year, today.month, today.day),
       lastDate: DateTime(today.year + 1, today.month, today.day),
-      initialDate: DateTime(today.year, today.month, today.day).add(const Duration(days: 1)),
+      initialDate: DateTime(
+        today.year,
+        today.month,
+        today.day,
+      ).add(const Duration(days: 1)),
     );
     if (picked != null) {
       setState(() {
@@ -105,7 +162,8 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
     try {
       final isNew = await state.saveSubscription(_withPause());
       if (!mounted) return;
-      if (isNew && state.shouldOfferPush) {
+      // No push for live trips yet (the engine skips those subscriptions).
+      if (isNew && state.shouldOfferPush && widget.tripInstanceId == null) {
         // Say why before the system asks (concept: rider-app.md).
         final ok = await showDialog<bool>(
           context: context,
@@ -114,8 +172,14 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
             title: Text(l.pushAskTitle),
             content: Text(l.pushAskBody),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(c, false), child: Text(l.notNow)),
-              FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(l.continueButton)),
+              TextButton(
+                onPressed: () => Navigator.pop(c, false),
+                child: Text(l.notNow),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(c, true),
+                child: Text(l.continueButton),
+              ),
             ],
           ),
         );
@@ -151,11 +215,12 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final state = AppScope.of(context);
-    final found = state.catalog.pattern(widget.patternId);
-    final stop = found?.$2.stopAt(widget.stopSequence);
-    final stopName = stop?.stopName.resolve(context.lang) ?? '';
+    final target = _target(state);
+    final stopName = target?.stopName ?? '';
     final theme = Theme.of(context);
-    final choices = _draft.trigger == AlertTrigger.minutes ? _minuteChoices : _stopChoices;
+    final choices = _draft.trigger == AlertTrigger.minutes
+        ? _minuteChoices
+        : _stopChoices;
     final until = _pauseUntil;
 
     return Scaffold(
@@ -163,94 +228,135 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          if (found != null)
+          if (target == null)
             ListTile(
-              leading: RouteBadge(route: found.$1),
-              title: Text(found.$1.name.resolve(context.lang)),
-              subtitle: Text(found.$2.name),
+              leading: const Icon(Icons.info_outline),
+              title: Text(
+                widget.patternId != null ? l.routeGone : l.liveTripGone,
+              ),
+            )
+          else if (target.route != null)
+            ListTile(
+              leading: RouteBadge(route: target.route!),
+              title: Text(target.route!.name.resolve(context.lang)),
+              subtitle: Text(target.subtitle),
+            )
+          else
+            ListTile(
+              leading: const Icon(Icons.directions_bus_outlined),
+              title: Text(target.subtitle),
             ),
-          // Only this stop; hidden when the server does not return its
-          // location.
-          if (stop != null) StopMiniMap(stopId: stop.stopId),
+          // Only this stop, where the server returns its location; else a
+          // short note why there is no map.
+          if (target?.stopId != null)
+            StopMiniMap(stopId: target!.stopId!, followed: _existing != null),
           const Divider(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Text(l.alertWhen, style: theme.textTheme.titleSmall),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SegmentedButton<AlertTrigger>(
-              segments: [
-                ButtonSegment(value: AlertTrigger.minutes, label: Text(l.alertByMinutes)),
-                ButtonSegment(value: AlertTrigger.stops, label: Text(l.alertByStops)),
-              ],
-              selected: {_draft.trigger},
-              onSelectionChanged: (s) => setState(() {
-                final t = s.first;
-                _draft = _draft.copyWith(
-                  trigger: t,
-                  triggerValue: t == AlertTrigger.minutes ? 5 : 1,
-                );
-              }),
+          // The engine does not send alerts for live trips yet: follow for
+          // home only, without alert settings that would promise them.
+          if (widget.tripInstanceId != null)
+            ListTile(
+              leading: const Icon(Icons.notifications_off_outlined),
+              title: Text(l.liveTripNoAlerts),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Wrap(
-              spacing: 8,
-              children: [
-                for (final v in choices)
-                  ChoiceChip(
-                    label: Text(
-                      _draft.trigger == AlertTrigger.minutes
-                          ? l.alertMinutesAway(v)
-                          : l.alertStopsAway(v),
+          if (widget.tripInstanceId == null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Text(l.alertWhen, style: theme.textTheme.titleSmall),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SegmentedButton<AlertTrigger>(
+                segments: [
+                  ButtonSegment(
+                    value: AlertTrigger.minutes,
+                    label: Text(l.alertByMinutes),
+                  ),
+                  ButtonSegment(
+                    value: AlertTrigger.stops,
+                    label: Text(l.alertByStops),
+                  ),
+                ],
+                selected: {_draft.trigger},
+                onSelectionChanged: (s) => setState(() {
+                  final t = s.first;
+                  _draft = _draft.copyWith(
+                    trigger: t,
+                    triggerValue: t == AlertTrigger.minutes ? 5 : 1,
+                  );
+                }),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  for (final v in choices)
+                    ChoiceChip(
+                      label: Text(
+                        _draft.trigger == AlertTrigger.minutes
+                            ? l.alertMinutesAway(v)
+                            : l.alertStopsAway(v),
+                      ),
+                      selected: _draft.triggerValue == v,
+                      onSelected: (_) => setState(
+                        () => _draft = _draft.copyWith(triggerValue: v),
+                      ),
                     ),
-                    selected: _draft.triggerValue == v,
-                    onSelected: (_) => setState(() => _draft = _draft.copyWith(triggerValue: v)),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            title: Text(l.alertNotifyPassed),
-            value: _draft.notifyPassed,
-            onChanged: (v) => setState(() => _draft = _draft.copyWith(notifyPassed: v)),
-          ),
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Text(l.alertPause, style: theme.textTheme.titleSmall),
-          ),
-          RadioGroup<_Pause>(
-            groupValue: _pause,
-            onChanged: (v) {
-              if (v == _Pause.until) {
-                _pickDate();
-              } else if (v != null) {
-                setState(() => _pause = v);
-              }
-            },
-            child: Column(
-              children: [
-                RadioListTile(value: _Pause.off, title: Text(l.alertPauseOff)),
-                RadioListTile(value: _Pause.today, title: Text(l.alertPauseToday)),
-                RadioListTile(
-                  value: _Pause.until,
-                  title: Text(
-                    until == null
-                        ? l.alertPauseUntilDate
-                        : l.alertPausedThrough(
-                            formatPausedThrough(until, _operator, context.lang),
-                          ),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 8),
+            SwitchListTile(
+              title: Text(l.alertNotifyPassed),
+              value: _draft.notifyPassed,
+              onChanged: (v) =>
+                  setState(() => _draft = _draft.copyWith(notifyPassed: v)),
             ),
-          ),
-          const Divider(),
-          if (!state.push.available)
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Text(l.alertPause, style: theme.textTheme.titleSmall),
+            ),
+            RadioGroup<_Pause>(
+              groupValue: _pause,
+              onChanged: (v) {
+                if (v == _Pause.until) {
+                  _pickDate();
+                } else if (v != null) {
+                  setState(() => _pause = v);
+                }
+              },
+              child: Column(
+                children: [
+                  RadioListTile(
+                    value: _Pause.off,
+                    title: Text(l.alertPauseOff),
+                  ),
+                  RadioListTile(
+                    value: _Pause.today,
+                    title: Text(l.alertPauseToday),
+                  ),
+                  RadioListTile(
+                    value: _Pause.until,
+                    title: Text(
+                      until == null
+                          ? l.alertPauseUntilDate
+                          : l.alertPausedThrough(
+                              formatPausedThrough(
+                                until,
+                                _operator,
+                                context.lang,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+          ],
+          if (!state.push.available && widget.tripInstanceId == null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Text(l.pushNotReady, style: theme.textTheme.bodySmall),
@@ -259,7 +365,7 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: FilledButton(
               key: const Key('save-alert'),
-              onPressed: _busy ? null : _save,
+              onPressed: _busy || target == null ? null : _save,
               child: Text(_existing == null ? l.followStop : l.save),
             ),
           ),

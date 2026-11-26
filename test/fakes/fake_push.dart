@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:buspilot_rider/src/push/push_alert.dart';
 import 'package:buspilot_rider/src/push/push_service.dart';
 
 /// Push that is available; the OS permission is [osAllowed] (true like
@@ -37,4 +38,25 @@ class FakePush implements PushService {
 
   @override
   Future<void> unregister() async => unregisters++;
+
+  /// Channel names by id, as last created.
+  Map<String, String> channels = {};
+
+  @override
+  Future<void> createChannels(Map<String, String> names) async => channels = Map.of(names);
+
+  final foreground = StreamController<PushAlert>.broadcast();
+  final opened = StreamController<PushAlert>.broadcast();
+
+  /// The notification that "started the app".
+  PushAlert? initial;
+
+  @override
+  Stream<PushAlert> get foregroundAlerts => foreground.stream;
+
+  @override
+  Stream<PushAlert> get openedAlerts => opened.stream;
+
+  @override
+  Future<PushAlert?> initialAlert() async => initial;
 }

@@ -51,10 +51,36 @@ tool/fake_live_trips.sh --map    # route A visible on the map too
 tool/fake_live_trips.sh --clean
 ```
 
-Invite links (`https://buspilot.org/join/<code>`) can be tried on Android with:
+### Invite links
+
+The canonical invite link, for QR codes and anything the admin console
+prints or shares, is:
+
+```text
+https://buspilot.org/join#code=<code>
+```
+
+- The code is in the fragment (`#…`), which browsers never send to a
+  server, so it does not end up in web server or proxy logs when the app is
+  not installed and the link opens in a browser.
+- `buspilot.org` is the host the app links are verified for (Android App
+  Links: `/.well-known/assetlinks.json`; iOS Universal Links later), so the
+  link opens the app directly.
+
+The app also accepts, typed, scanned or opened:
+
+- `https://buspilot.org/join/<code>` (the first format; the code reaches the
+  server in the path);
+- `https://app.buspilot.org/join#code=<code>`, the admin console's current
+  default (`NUXT_PUBLIC_RIDER_JOIN_URL`). Scanned in the app it works; scanned
+  with the phone's camera it opens the admin console's host, which is not an
+  app link host. **The admin console should use
+  `NUXT_PUBLIC_RIDER_JOIN_URL=https://buspilot.org/join#code={code}`.**
+
+Try a link on Android with:
 
 ```bash
-adb shell am start -a android.intent.action.VIEW -d https://buspilot.org/join/DEMO-KOBE-2026 org.buspilot.buspilot_rider
+adb shell am start -a android.intent.action.VIEW -d 'https://buspilot.org/join#code=DEMO-KOBE-2026' org.buspilot.buspilot_rider
 ```
 
 ## Tests
@@ -80,7 +106,7 @@ flutter test integration_test -d <device> --dart-define-from-file=config/local.j
 | `lib/src/state/` | `AppState` and the on-phone store (settings, offline cache) |
 | `lib/src/ui/` | Screens: language, join and QR scan, home, route and map, alert settings, news, calendar, settings |
 | `lib/src/l10n/` | Translations (ARB, ja/en/de) and the generated localisations |
-| `lib/src/push/` | Push token registration: FCM on Android (`FcmPushService`), nothing elsewhere (`NoPushService`) |
+| `lib/src/push/` | Push: token registration, notification channels and alert messages (`PushAlert`); FCM on Android (`FcmPushService`), nothing elsewhere (`NoPushService`) |
 | `tool/` | Development scripts |
 
 **State management:** one `ChangeNotifier` (`AppState`) provided through an
@@ -88,11 +114,23 @@ flutter test integration_test -d <device> --dart-define-from-file=config/local.j
 may see, plus today's trips) and a handful of screens, so no framework is
 needed; screens keep their own form state.
 
-**Data:** row-level security decides what the anonymous device sees, so the app
-reads whole tables (`route` with patterns, stops and trips, `service_calendar`,
-`post`, …) and caches the JSON for offline use. Live state (`trip_instance`,
-`stop_event`) is polled every 30 seconds while a screen is open; Realtime comes
-later. Stop locations come only from the `stop_location` view.
+**Data:** row-level security decides what the anonymous device sees. The app
+reads its routes through `rpc/my_routes` (routes of joined operators plus
+followed routes, with the same embeds as `route`; a public route opened from a
+link is read from `route` by id), service days through `rpc/service_days`
+(national holidays applied on the server) and holiday names from
+`national_holiday`, for about 13 months from this month, plus
+`service_calendar`, `post` (general posts are members-only on the server) and
+the device's memberships and subscriptions. All of it is cached as JSON for
+offline use. Stop locations come only from the `stop_location` view: at map
+level all stops, for arrival-times-only audiences the first two followed stops
+per operator (the mini map), else none.
+
+**Live data:** trip progress, stop states and ETAs (`trip_instance`,
+`stop_event`, and live trips with their planned stops, `trip_instance_stop`)
+are polled every 30 seconds while a screen is open, behind the `LiveSource`
+interface. They will come from the engine's Live API instead, not from
+Supabase Realtime.
 
 **Push:** Android uses Firebase project `buspilot-84a51` (`android/app/google-services.json`,
 `lib/firebase_options.dart`: public identifiers). After the user follows a stop
@@ -100,6 +138,24 @@ and agrees, the app asks for notification permission and stores its Firebase
 Installation ID (firebase_messaging 17 `register()` / `onRegistered`) in
 `device.push_token`; the engine sends to it. Without Firebase (iOS for now, or
 if it fails to start) the app works without push.
+
+The engine's messages are described in buspilot-org/server
+`engine/README.md` ("Push message format"). The app:
+
+- creates the Android channels `arrival_alerts` and `trip_changes`, named in
+  the app's language (`MainActivity.kt`);
+- shows an alert that arrives in the foreground in a snack bar, with a button
+  to the stop;
+- opens the route (or live trip) at the stop and trip of a tapped
+  notification, also when the notification started the app;
+- keeps `device.language` current (the server writes the text in it) and
+  registers again when the engine cleared an invalid `push_token`;
+- ignores messages with a `v` other than `1` and unknown `kind` values.
+
+**Branding:** operator logos and cover images (`branding.logo_url`,
+`cover_url`) load only from the operator's folder in the `operator-branding`
+bucket on the app's own Supabase host, so riders' phones never contact a host
+an operator picked.
 
 ## Contributing
 

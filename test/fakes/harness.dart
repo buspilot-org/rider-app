@@ -32,6 +32,7 @@ Future<AppState> pumpApp(
   String? language = 'en',
   Stream<Uri>? links,
   PushService? push,
+  String mapStyleUrl = '',
 }) async {
   final s = store ?? await freshStore(onboarded: onboarded, language: language);
   var clock = now ?? mondayMorning;
@@ -41,6 +42,7 @@ Future<AppState> pumpApp(
     clock: () => clock,
     phoneLanguage: () => 'en',
     push: push ?? const NoPushService(),
+    mapStyleUrl: mapStyleUrl,
   );
   await tester.pumpWidget(RiderApp(state: state, links: links));
   await tester.runAsync(state.start);

@@ -5,6 +5,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../config.dart';
 import '../data/api.dart';
 import '../data/arrivals.dart';
+import '../data/branding.dart';
 import '../data/models.dart';
 import '../l10n/app_localizations.dart';
 import '../state/app_state.dart';
@@ -43,7 +44,13 @@ class OperatorAvatar extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final colors = routeColors(operator?.colorHex, null, scheme);
     final name = operator?.name.resolve(context.lang) ?? '?';
-    final logo = _allowedLogo(operator?.logoUrl);
+    final logo = operator == null
+        ? null
+        : brandingImageUrl(
+            operator!.logoUrl,
+            backendUrl: AppConfig.supabaseUrl,
+            operatorId: operator!.id,
+          );
     return CircleAvatar(
       radius: radius,
       backgroundColor: colors.background,
@@ -54,13 +61,39 @@ class OperatorAvatar extends StatelessWidget {
   }
 }
 
-/// Logos load only from the Buspilot backend (Supabase Storage), so riders'
-/// phones never contact a host the operator picked.
-String? _allowedLogo(String? url) {
-  if (url == null) return null;
-  final host = Uri.tryParse(url)?.host;
-  final backend = Uri.tryParse(AppConfig.supabaseUrl)?.host;
-  return host != null && backend != null && backend.isNotEmpty && host == backend ? url : null;
+/// The operator's cover image (`branding.cover_url`) with its name, above
+/// its routes. Nothing when there is no cover or it is not on the Buspilot
+/// backend.
+class OperatorCover extends StatelessWidget {
+  const OperatorCover({super.key, required this.operator});
+
+  final Operator operator;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = brandingImageUrl(
+      operator.coverUrl,
+      backendUrl: AppConfig.supabaseUrl,
+      operatorId: operator.id,
+    );
+    if (url == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: AspectRatio(
+          aspectRatio: 3,
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            semanticLabel: operator.name.resolve(context.lang),
+            // Offline or not found: no cover rather than a broken image.
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Short route name on the route colour.

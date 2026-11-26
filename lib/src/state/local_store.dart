@@ -19,6 +19,7 @@ class LocalStore {
   static const _fetchedAt = 'cache.fetched_at';
   static const _deviceTouchedAt = 'device_touched_at';
   static const _pushOptedIn = 'push_opted_in';
+  static const _hiddenCategories = 'hidden_post_categories';
 
   static const keys = {
     _language,
@@ -29,6 +30,7 @@ class LocalStore {
     _fetchedAt,
     _deviceTouchedAt,
     _pushOptedIn,
+    _hiddenCategories,
   };
 
   static Future<LocalStore> open() async => LocalStore(
@@ -50,6 +52,15 @@ class LocalStore {
   /// The user agreed to push notifications in the app's explanation.
   bool get pushOptedIn => _prefs.getBool(_pushOptedIn) ?? false;
   Future<void> setPushOptedIn() => _prefs.setBool(_pushOptedIn, true);
+
+  /// Post categories hidden in the news list (on the phone only).
+  Set<PostCategory> get hiddenCategories => {
+    for (final name in _prefs.getStringList(_hiddenCategories) ?? const <String>[])
+      for (final c in PostCategory.values)
+        if (c.name == name) c,
+  };
+  Future<void> setHiddenCategories(Set<PostCategory> value) =>
+      _prefs.setStringList(_hiddenCategories, [for (final c in value) c.name]..sort());
 
   DateTime? get newsReadAt => _time(_newsReadAt);
   Future<void> setNewsReadAt(DateTime t) =>

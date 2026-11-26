@@ -34,12 +34,14 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Invite links: https://buspilot.org/join/<code>. Verification
-                 needs /.well-known/assetlinks.json on buspilot.org. -->
+            <!-- Invite links: https://buspilot.org/join#code=<code> (canonical)
+                 and https://buspilot.org/join/<code>. Verification needs
+                 /.well-known/assetlinks.json on buspilot.org. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="buspilot.org" android:path="/join"/>
                 <data android:scheme="https" android:host="buspilot.org" android:pathPrefix="/join/"/>
             </intent-filter>
         </activity>

@@ -89,11 +89,12 @@ void main() {
     await links.close();
   });
 
-  testWidgets('other operators\' public routes and posts stay hidden', (tester) async {
+  testWidgets('other operators that RLS returns stay hidden', (tester) async {
     final api = FakeApi(joined: true)..withForeignPublicRoute = true;
     final state = await pumpApp(tester, api: api);
     expect(find.text('Morning route A'), findsOneWidget);
-    expect(find.text('Hotel shuttle'), findsNothing);
+    expect(state.catalog.operators.map((o) => o.id), [opId]);
+    expect(state.catalog.calendars.map((c) => c.id), [calendarId]);
     expect(state.catalog.posts.map((p) => p.id), ['p1']);
 
     // Not a member of anything: the join prompt, not the hotel's route.

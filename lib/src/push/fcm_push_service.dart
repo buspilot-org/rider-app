@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import '../../firebase_options.dart';
+import 'push_alert.dart';
 import 'push_service.dart';
 
 /// Push through Firebase Cloud Messaging (APNs through FCM on iOS, once iOS
@@ -87,4 +89,43 @@ class FcmPushService implements PushService {
   @override
   Stream<String> get tokenRefresh =>
       _messaging.onRegistered.handleError((Object e) => debugPrint('Registration failed ($e)'));
+
+  /// Native side: MainActivity.kt.
+  static const _channels = MethodChannel('org.buspilot.rider/notifications');
+
+  @override
+  Future<void> createChannels(Map<String, String> names) async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      await _channels.invokeMethod<void>('createChannels', names);
+    } catch (e) {
+      // Android then uses its default channel.
+      debugPrint('Notification channels not created ($e)');
+    }
+  }
+
+  static PushAlert? _alert(RemoteMessage m) => PushAlert.fromData(
+    m.data,
+    title: m.notification?.title,
+    body: m.notification?.body,
+  );
+
+  @override
+  Stream<PushAlert> get foregroundAlerts =>
+      FirebaseMessaging.onMessage.map(_alert).where((a) => a != null).cast<PushAlert>();
+
+  @override
+  Stream<PushAlert> get openedAlerts =>
+      FirebaseMessaging.onMessageOpenedApp.map(_alert).where((a) => a != null).cast<PushAlert>();
+
+  @override
+  Future<PushAlert?> initialAlert() async {
+    try {
+      final m = await _messaging.getInitialMessage();
+      return m == null ? null : _alert(m);
+    } catch (e) {
+      debugPrint('Initial message unavailable ($e)');
+      return null;
+    }
+  }
 }

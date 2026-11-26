@@ -89,12 +89,14 @@ class Operator {
     return null;
   }
 
-  /// Absolute https logo URL, if set. Storage paths need a bucket that is not
-  /// defined yet, so only full URLs are shown.
-  String? get logoUrl {
-    final l = branding['logo_url'] ?? branding['logo'];
-    return l is String && l.startsWith('https://') ? l : null;
-  }
+  /// Logo URL as stored (`branding.logo_url`). Show it only through
+  /// [brandingImageUrl], which allows the Buspilot Storage host only.
+  String? get logoUrl => _string(branding['logo_url']);
+
+  /// Cover image URL as stored (`branding.cover_url`); see [logoUrl].
+  String? get coverUrl => _string(branding['cover_url']);
+
+  static String? _string(Object? v) => v is String && v.isNotEmpty ? v : null;
 
   List<OperatorLink> get links {
     final list = [
@@ -195,11 +197,9 @@ class ServiceCalendar {
       CalendarException((e as Map).cast<String, dynamic>()),
   ];
 
-  /// Whether the calendar runs on [day] (a date; time is ignored).
-  ///
-  /// National holidays are not known to the app yet, so
-  /// [skipNationalHolidays] is not applied; trip instances from the engine
-  /// are the authority on the day itself.
+  /// Whether the calendar's weekdays, dates and exceptions include [day] (a
+  /// date; time is ignored). National holidays are not applied here: use
+  /// [Catalog.runsOn], which has the server's service days.
   bool runsOn(DateTime day) {
     final d = dateOnly(day);
     for (final e in exceptions) {
@@ -220,11 +220,14 @@ class Membership {
 
 enum AlertTrigger { minutes, stops }
 
+/// A followed stop: a stop of a pattern (every trip of it, [patternId]) or a
+/// planned stop of one live trip ([tripInstanceId]). Exactly one is set.
 class Subscription {
   Subscription({
     this.id,
     required this.operatorId,
-    required this.patternId,
+    this.patternId,
+    this.tripInstanceId,
     required this.stopSequence,
     this.trigger = AlertTrigger.minutes,
     this.triggerValue = 5,
@@ -235,7 +238,8 @@ class Subscription {
   factory Subscription.fromJson(Json json) => Subscription(
     id: json['id'] as String?,
     operatorId: json['operator_id'] as String,
-    patternId: json['pattern_id'] as String,
+    patternId: json['pattern_id'] as String?,
+    tripInstanceId: json['trip_instance_id'] as String?,
     stopSequence: (json['stop_sequence'] as num).toInt(),
     trigger: json['trigger'] == 'stops' ? AlertTrigger.stops : AlertTrigger.minutes,
     triggerValue: (json['trigger_value'] as num?)?.toInt() ?? 5,
@@ -247,8 +251,11 @@ class Subscription {
 
   final String? id;
   final String operatorId;
-  final String patternId;
+  final String? patternId;
+  final String? tripInstanceId;
   final int stopSequence;
+
+  bool get isLive => tripInstanceId != null;
   final AlertTrigger trigger;
   final int triggerValue;
   final bool notifyPassed;
@@ -260,6 +267,7 @@ class Subscription {
     if (id != null) 'id': id,
     'operator_id': operatorId,
     'pattern_id': patternId,
+    'trip_instance_id': tripInstanceId,
     'stop_sequence': stopSequence,
     'trigger': trigger.name,
     'trigger_value': triggerValue,
@@ -277,6 +285,7 @@ class Subscription {
     id: id,
     operatorId: operatorId,
     patternId: patternId,
+    tripInstanceId: tripInstanceId,
     stopSequence: stopSequence,
     trigger: trigger ?? this.trigger,
     triggerValue: triggerValue ?? this.triggerValue,
@@ -284,6 +293,16 @@ class Subscription {
     mutedUntil: clearMute ? null : (mutedUntil ?? this.mutedUntil),
   );
 }
+
+/// `post.category`. Riders hide categories in the news list.
+enum PostCategory { cancellation, delay, general, event }
+
+PostCategory parsePostCategory(Object? value) => switch (value) {
+  'cancellation' => PostCategory.cancellation,
+  'delay' => PostCategory.delay,
+  'event' => PostCategory.event,
+  _ => PostCategory.general,
+};
 
 class Post {
   Post(this.json);
@@ -293,6 +312,7 @@ class Post {
   String? get routeId => json['route_id'] as String?;
   I18nText get title => I18nText.fromJson(json['title']);
   I18nText get body => I18nText.fromJson(json['body']);
+  PostCategory get category => parsePostCategory(json['category']);
   DateTime get publishedAt => DateTime.parse(json['published_at'] as String);
 }
 
@@ -315,10 +335,36 @@ class StopEvent {
   DateTime? get updatedAt => _t('updated_at');
 }
 
+/// A planned stop of a live trip (`trip_instance_stop`).
+class PlannedStop {
+  PlannedStop(this.json);
+  final Json json;
+  int get sequence => (json['stop_sequence'] as num).toInt();
+  String get stopId => json['stop_id'] as String;
+  DateTime? get plannedArrival => _time(json['planned_arrival']);
+  DateTime? get plannedDeparture => _time(json['planned_departure']);
+  I18nText get stopName => I18nText.fromJson((json['stop'] as Map?)?['name']);
+
+  /// The planned time at the stop: arrival, else departure.
+  DateTime? get planned => plannedArrival ?? plannedDeparture;
+}
+
+DateTime? _time(Object? value) => value is String ? DateTime.tryParse(value) : null;
+
 class TripInstance {
   TripInstance(this.json);
   final Json json;
   String get id => json['id'] as String;
+  String? get operatorId => json['operator_id'] as String?;
+
+  /// A trip started or planned by staff outside the timetable.
+  bool get isLive => json['kind'] == 'live';
+
+  /// A live trip with its own planned stops (no pattern), shown on its own.
+  bool get isStandaloneLive => isLive && patternId == null;
+
+  /// Live trips are hidden after this.
+  DateTime? get visibleUntil => _time(json['visible_until']);
   String? get tripId => json['trip_id'] as String?;
   String? get patternId => json['pattern_id'] as String?;
   String? get routeId => json['route_id'] as String?;
@@ -341,6 +387,21 @@ class TripInstance {
     }
     return null;
   }
+
+  List<PlannedStop> get plannedStops => [
+    for (final s in (json['trip_instance_stop'] as List? ?? const []))
+      PlannedStop((s as Map).cast<String, dynamic>()),
+  ]..sort((a, b) => a.sequence.compareTo(b.sequence));
+
+  PlannedStop? plannedStopAt(int sequence) {
+    for (final s in plannedStops) {
+      if (s.sequence == sequence) return s;
+    }
+    return null;
+  }
+
+  /// Whether a live trip is still shown at [now].
+  bool visibleAt(DateTime now) => visibleUntil == null || visibleUntil!.isAfter(now);
 }
 
 /// Everything the device may see, as one snapshot: what RLS returns for the
@@ -369,6 +430,48 @@ class Catalog {
       _list('subscriptions').map(Subscription.fromJson).toList();
   late final List<Post> posts = _list('posts').map(Post.new).toList()
     ..sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+
+  /// calendar id → dates it runs ("2026-11-24"), from `rpc/service_days`
+  /// (national holidays applied on the server), for
+  /// [serviceDaysFrom]..[serviceDaysTo].
+  late final Map<String, Set<String>> serviceDays = () {
+    final map = <String, Set<String>>{};
+    for (final d in _list('service_days')) {
+      map.putIfAbsent(d['calendar_id'] as String, () => {}).add(d['service_date'] as String);
+    }
+    return map;
+  }();
+
+  DateTime? get serviceDaysFrom => _date(json['service_days_from']);
+
+  /// Calendars [serviceDays] were loaded for (null: all of them).
+  late final Set<String>? serviceDaysCalendars = (json['service_days_calendars'] as List?)
+      ?.whereType<String>()
+      .toSet();
+  DateTime? get serviceDaysTo => _date(json['service_days_to']);
+
+  static DateTime? _date(Object? v) => v is String ? parseDate(v) : null;
+
+  /// Japanese national holidays ("2026-11-23" → name) in the same range.
+  late final Map<String, I18nText> holidays = {
+    for (final h in _list('holidays')) h['date'] as String: I18nText.fromJson(h['name']),
+  };
+
+  /// Whether [calendar] runs on [day]: the server's answer where loaded,
+  /// else the calendar's rules with the holidays the app knows.
+  bool runsOn(ServiceCalendar calendar, DateTime day) {
+    final d = dateOnly(day);
+    final from = serviceDaysFrom;
+    final to = serviceDaysTo;
+    final covered = serviceDaysCalendars?.contains(calendar.id) ?? true;
+    if (covered && from != null && to != null && !d.isBefore(from) && !d.isAfter(to)) {
+      return serviceDays[calendar.id]?.contains(formatDate(d)) ?? false;
+    }
+    if (!calendar.runsOn(d)) return false;
+    // An added exception wins over a holiday, as on the server.
+    final added = calendar.exceptions.any((e) => e.added && e.covers(d));
+    return added || !calendar.skipNationalHolidays || !holidays.containsKey(formatDate(d));
+  }
 
   /// route_id → can_see_map for any audience the device is a member of.
   late final Map<String, bool> _routeMap = {
@@ -435,6 +538,13 @@ class Catalog {
     return null;
   }
 
+  Subscription? liveSubscriptionFor(String tripInstanceId, int sequence) {
+    for (final s in subscriptions) {
+      if (s.tripInstanceId == tripInstanceId && s.stopSequence == sequence) return s;
+    }
+    return null;
+  }
+
   List<ServiceCalendar> calendarsOfRoute(BusRoute route) {
     final ids = {
       for (final p in route.patterns)
@@ -444,11 +554,13 @@ class Catalog {
   }
 }
 
-/// Narrows what RLS returns to what this device has joined.
+/// Narrows the catalog to what belongs to the device's routes.
 ///
-/// RLS also returns every operator's public routes and their general posts
-/// to everyone. The app shows only operators the device is a member of, plus
-/// routes it follows a stop on (public routes followed from a link).
+/// Routes come from `rpc/my_routes` (joined operators plus followed routes)
+/// and posts are filtered by RLS (general posts for members only), so this
+/// only drops operators and calendars that no route of the device uses:
+/// `operator` and `service_calendar` also return every public operator's
+/// rows.
 Json visibleCatalog(Json raw) {
   List<Json> list(String key) => [
     for (final e in (raw[key] as List? ?? const [])) (e as Map).cast<String, dynamic>(),
@@ -457,17 +569,7 @@ Json visibleCatalog(Json raw) {
     for (final m in list('memberships'))
       if (m['revoked_at'] == null) m['operator_id'] as String,
   };
-  final followedPatterns = {
-    for (final s in list('subscriptions')) s['pattern_id'] as String,
-  };
-  final routes = [
-    for (final r in list('routes'))
-      if (members.contains(r['operator_id']) ||
-          (r['trip_pattern'] as List? ?? const [])
-              .any((p) => followedPatterns.contains((p as Map)['id'])))
-        r,
-  ];
-  final routeIds = {for (final r in routes) r['id'] as String};
+  final routes = list('routes');
   final operatorIds = {...members, for (final r in routes) r['operator_id'] as String};
   final calendarIds = {
     for (final r in routes)
@@ -481,15 +583,9 @@ Json visibleCatalog(Json raw) {
       for (final o in list('operators'))
         if (operatorIds.contains(o['id'])) o,
     ],
-    'routes': routes,
     'calendars': [
       for (final c in list('calendars'))
         if (calendarIds.contains(c['id'])) c,
-    ],
-    // General posts for members; route posts for routes shown.
-    'posts': [
-      for (final p in list('posts'))
-        if (members.contains(p['operator_id']) || routeIds.contains(p['route_id'])) p,
     ],
   };
 }

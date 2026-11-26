@@ -306,7 +306,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get calendarHolidaysNote =>
-      'Feiertage sind noch nicht markiert; an Feiertagen fährt meist kein Bus.';
+      'An Feiertagen fährt kein Bus, außer sie stehen als zusätzlicher Betriebstag in der Liste.';
 
   @override
   String get previousMonth => 'Vorheriger Monat';
@@ -346,7 +346,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get privacyText =>
-      'Buspilot braucht kein Konto. Der Server speichert nur eine anonyme ID für dieses Telefon, seine Sprache, ein Push-Token (sobald Benachrichtigungen aktiv sind) und die Haltestellen, denen du folgst. Name, E-Mail, Telefonnummer oder Standort werden nie gespeichert. Alles wird 90 Tage nach der letzten Nutzung gelöscht. Die Schaltfläche unten löscht Busdienste, Haltestellen und Push-Token sofort; die anonyme ID selbst wird innerhalb von 90 Tagen entfernt.';
+      'Buspilot braucht kein Konto. Der Server speichert nur eine anonyme ID für dieses Telefon, seine Sprache, ein Push-Token (sobald Benachrichtigungen aktiv sind) und die Haltestellen, denen du folgst. Name, E-Mail, Telefonnummer oder Standort werden nie gespeichert. Alles wird 90 Tage nach der letzten Nutzung gelöscht. Die Schaltfläche unten löscht all das sofort vom Server und von diesem Telefon.';
 
   @override
   String get deleteData => 'Meine Daten löschen';
@@ -356,7 +356,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get deleteConfirmBody =>
-      'Deine Busdienste, Haltestellen und Benachrichtigungseinstellungen werden vom Server und von diesem Telefon gelöscht. Zum erneuten Beitreten brauchst du wieder die Einladungscodes.';
+      'Die anonyme ID dieses Telefons, deine Busdienste, Haltestellen und Benachrichtigungseinstellungen werden vom Server und von diesem Telefon gelöscht. Zum erneuten Beitreten brauchst du wieder die Einladungscodes.';
 
   @override
   String get settingsAbout => 'Über die App';
@@ -376,4 +376,78 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get retry => 'Erneut versuchen';
+
+  @override
+  String get channelArrivalAlerts => 'Ankunftsmeldungen';
+
+  @override
+  String get channelTripChanges => 'Verspätungen und Ausfälle';
+
+  @override
+  String get alertShow => 'Anzeigen';
+
+  @override
+  String get postCategoryCancellation => 'Ausfall';
+
+  @override
+  String get postCategoryDelay => 'Verspätung';
+
+  @override
+  String get postCategoryGeneral => 'Allgemein';
+
+  @override
+  String get postCategoryEvent => 'Veranstaltung';
+
+  @override
+  String get newsCategories => 'Kategorien';
+
+  @override
+  String get newsCategoriesNote =>
+      'Wähle, welche Mitteilungen angezeigt werden. Das gilt nur für die Liste auf diesem Telefon.';
+
+  @override
+  String newsHidden(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Mitteilungen ausgeblendet',
+      one: '1 Mitteilung ausgeblendet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarHolidaysHeader => 'Feiertage';
+
+  @override
+  String get miniMapFollowHint =>
+      'Haltestellen, denen du folgst, können auf einer kleinen Karte erscheinen, höchstens zwei je Busdienst.';
+
+  @override
+  String get miniMapLimit =>
+      'Keine Karte für diese Haltestelle. Die kleine Karte zeigt höchstens zwei Haltestellen je Busdienst, denen du folgst; nach dem Entfolgen bleibt ein Platz 30 Tage belegt.';
+
+  @override
+  String get liveTripsHeader => 'Sonderfahrten';
+
+  @override
+  String liveTripVisibleUntil(String time) {
+    return 'Sichtbar bis $time';
+  }
+
+  @override
+  String liveTripNextStop(String stop) {
+    return 'Als Nächstes: $stop';
+  }
+
+  @override
+  String get liveTripNoAlerts =>
+      'Für Sonderfahrten werden noch keine Benachrichtigungen gesendet. Die Haltestelle erscheint mit ihrer Ankunftszeit auf dem Startbildschirm.';
+
+  @override
+  String get liveTripEnded =>
+      'Eine Sonderfahrt, der du folgst, wird nicht mehr angezeigt';
+
+  @override
+  String get liveTripGone => 'Diese Fahrt wird nicht mehr angezeigt.';
 }

@@ -1,11 +1,14 @@
 // End-to-end test against the local Supabase stack with the seed of
-// buspilot-org/server: join with DEMO-KOBE-2026, follow a stop, see it on
-// home. Run on a device or emulator (see README):
+// buspilot-org/server: join with DEMO-KOBE-2026 (routes from rpc/my_routes,
+// service days from rpc/service_days), follow a stop, see it on home, delete
+// my data (rpc/delete_my_device). Run on a device or emulator (see README):
 //
 //   adb reverse tcp:55321 tcp:55321
 //   flutter test integration_test -d <device> --dart-define-from-file=config/local.json
 import 'package:buspilot_rider/src/app.dart';
 import 'package:buspilot_rider/src/config.dart';
+import 'package:buspilot_rider/src/data/arrivals.dart';
+import 'package:buspilot_rider/src/data/models.dart';
 import 'package:buspilot_rider/src/data/supabase_api.dart';
 import 'package:buspilot_rider/src/state/app_state.dart';
 import 'package:buspilot_rider/src/state/local_store.dart';
@@ -32,7 +35,7 @@ Future<void> pumpUntil(WidgetTester tester, Finder finder, {int seconds = 30}) a
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('join with the demo code, follow a stop, see it on home', (tester) async {
+  testWidgets('join, follow a stop, see it on home, delete my data', (tester) async {
     expect(AppConfig.isConfigured, isTrue, reason: 'build with --dart-define-from-file');
     tzdata.initializeTimeZones();
     await Supabase.initialize(url: AppConfig.supabaseUrl, publishableKey: AppConfig.supabaseKey);
@@ -63,8 +66,17 @@ void main() {
     await tester.enterText(find.byKey(const Key('invite-code')), 'DEMO-KOBE-2026');
     await tester.tap(find.byKey(const Key('join-button')));
     await pumpUntil(tester, find.text('Morning route A'));
+    // rpc/my_routes: the operator's route only; service days and holidays
+    // for about 13 months from this month.
+    expect(state.catalog.routes.map((r) => r.id), ['d0000000-0000-4000-8000-000000000101']);
+    expect(state.catalog.serviceDaysFrom, isNotNull);
+    expect(state.catalog.serviceDays.values.expand((d) => d), isNotEmpty);
+    expect(state.catalog.holidays, isNotEmpty);
 
-    await tester.tap(find.text('Morning route A'));
+    // Let the join screen close before tapping home.
+    await pumpUntil(tester, find.text('Routes').hitTestable());
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Morning route A').hitTestable());
     await pumpUntil(tester, find.byKey(const ValueKey('stop-2')));
     await tester.tap(find.byKey(const ValueKey('stop-2')));
     await pumpUntil(tester, find.byKey(const Key('save-alert')));
@@ -89,7 +101,74 @@ void main() {
     expect(rows.single['stop_sequence'], 2);
     expect(rows.single['device_id'], userId);
 
-    // Clean up: delete the device (memberships and subscriptions follow).
-    await api.deleteMyData();
+    // Live trips with planned stops (tool/fake_live_trips.sh adds the
+    // "Museum tour" for the demo audience): the real query, then follow a
+    // stop of it, save it again (upsert on device_id, trip_instance_id,
+    // stop_sequence) and read it back.
+    const tourId = 'd0000000-0000-4000-8000-0000000009d1';
+    final today = formatDate(serviceDay(locationOf(null), DateTime.now()));
+    final live = await api.fetchLiveTrips(
+      operatorIds: ['d0000000-0000-4000-8000-000000000001'],
+      serviceDates: [today],
+    );
+    if (live.isEmpty) {
+      // ignore: avoid_print
+      print('No live trip in the database: run tool/fake_live_trips.sh to test live trips.');
+    } else {
+      final tour = TripInstance(live.singleWhere((t) => t['id'] == tourId));
+      expect(tour.isStandaloneLive, isTrue);
+      expect(tour.plannedStops.map((s) => s.stopName.resolve('en')), ['Shin-Kobe Station', 'Sannomiya', 'School']);
+      expect(tour.events, hasLength(3));
+
+      await tester.tap(find.text('Museum tour'));
+      await pumpUntil(tester, find.byKey(const ValueKey('live-stop-2')));
+      await tester.tap(find.byKey(const ValueKey('live-stop-2')));
+      await pumpUntil(tester, find.byKey(const Key('save-alert')));
+      await tester.tap(find.byKey(const Key('save-alert')));
+      // Back on the trip once the settings screen has closed: the stop's
+      // bell now opens its settings.
+      await pumpUntil(tester, find.byTooltip('Alert settings'));
+      for (var i = 0; i < 50 && find.byKey(const Key('save-alert')).evaluate().isNotEmpty; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await pumpUntil(tester, find.byKey(const ValueKey('$tourId:2')));
+
+      final followed = state.catalog.liveSubscriptionFor(tourId, 2)!;
+      await api.saveSubscription(followed.copyWith(triggerValue: 10));
+      final liveRows = await Supabase.instance.client
+          .from('subscription')
+          .select()
+          .not('trip_instance_id', 'is', null);
+      expect(liveRows, hasLength(1));
+      expect(liveRows.single['trip_instance_id'], tourId);
+      expect(liveRows.single['pattern_id'], isNull);
+      expect(liveRows.single['stop_sequence'], 2);
+      expect(liveRows.single['trigger_value'], 10);
+    }
+
+    // Delete my data from settings: rpc/delete_my_device, then sign out.
+    await tester.tap(find.byTooltip('Settings'));
+    await pumpUntil(tester, find.text('Delete my data'));
+    await tester.scrollUntilVisible(
+      find.text('Delete my data'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Delete my data'));
+    await pumpUntil(tester, find.widgetWithText(FilledButton, 'Delete'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await pumpUntil(tester, find.byKey(const Key('lang-en')));
+    expect(Supabase.instance.client.auth.currentUser, isNull);
+
+    // The anonymous user is gone: a new device does not see the old
+    // subscription, and the old one cannot sign back in with its session.
+    await Supabase.instance.client.auth.signInAnonymously();
+    expect(Supabase.instance.client.auth.currentUser!.id, isNot(userId));
+    final after = await Supabase.instance.client.from('subscription').select();
+    expect(after, isEmpty);
+    await Supabase.instance.client.rpc('delete_my_device');
+    await Supabase.instance.client.auth.signOut();
   });
 }
