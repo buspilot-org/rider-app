@@ -57,8 +57,11 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
     final unread = state.unreadPosts;
 
     final cards = <StopCard>[];
-    // Followed stops of live trips that are no longer shown: the server
-    // keeps the subscription (and its mini map place), so offer to unfollow.
+    // Followed stops of live trips that are no longer shown (ended, or no
+    // longer visible to this device): the server keeps the subscription
+    // (and its mini map place), so offer to unfollow. Not while the data is
+    // stale: the trip may just be missing from an old cache.
+    final stale = state.offline || state.serverError;
     final ended = <Subscription>[];
     for (final sub in catalog.subscriptions) {
       if (sub.patternId case final patternId?) {
@@ -94,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
         // A stop of a live trip: shown while the trip is.
         final trip = state.liveTrip(tripId);
         if (trip == null || trip.operatorId == null) {
-          ended.add(sub);
+          if (!stale) ended.add(sub);
           continue;
         }
         final visit = liveVisitAt(trip, sub.stopSequence, now);
@@ -174,10 +177,14 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
             if (!hasRoutes) const _EmptyState(),
             if (hasRoutes) ...[
               _Header(l.myStops),
-              if (cards.isEmpty)
+              if (cards.isEmpty && ended.isEmpty)
                 _HintCard(title: l.homeNoStopsTitle, body: l.homeNoStopsBody),
               ...cards,
-              for (final sub in ended) _EndedLiveFollow(subscription: sub),
+              for (final sub in ended)
+                _EndedLiveFollow(
+                  key: ValueKey('ended-${sub.tripInstanceId}:${sub.stopSequence}'),
+                  subscription: sub,
+                ),
               if (liveTrips.isNotEmpty) ...[
                 _Header(l.liveTripsHeader),
                 for (final t in liveTrips) _LiveTripTile(trip: t, now: now),
@@ -245,10 +252,10 @@ class _Header extends StatelessWidget {
   );
 }
 
-/// A followed stop of a live trip that has ended (past `visible_until`, or no
-/// longer visible): say so and let the rider unfollow it.
+/// A followed stop of a live trip that is no longer shown (past
+/// `visible_until`, or no longer visible): say so and let the rider unfollow.
 class _EndedLiveFollow extends StatefulWidget {
-  const _EndedLiveFollow({required this.subscription});
+  const _EndedLiveFollow({super.key, required this.subscription});
   final Subscription subscription;
 
   @override
@@ -275,7 +282,6 @@ class _EndedLiveFollowState extends State<_EndedLiveFollow> {
     final l = context.l10n;
     final op = state.catalog.operator(widget.subscription.operatorId);
     return Card(
-      key: ValueKey('ended-${widget.subscription.tripInstanceId}:${widget.subscription.stopSequence}'),
       child: ListTile(
         leading: const Icon(Icons.event_busy_outlined),
         title: Text(l.liveTripEnded),

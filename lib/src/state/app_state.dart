@@ -298,9 +298,16 @@ class AppState extends ChangeNotifier {
       for (final r in (catalogJson['routes'] as List? ?? const []))
         (r as Map)['operator_id'] as String,
     }.toList()..sort();
+    // Sorted, exceptions too: PostgREST returns embedded rows in no fixed
+    // order, which must not change the key.
     final calendars = [
       for (final c in (catalogJson['calendars'] as List? ?? const []))
-        (c as Map).cast<String, dynamic>(),
+        {
+          ...(c as Map).cast<String, dynamic>(),
+          'calendar_exception': [
+            for (final e in (c['calendar_exception'] as List? ?? const [])) jsonEncode(e),
+          ]..sort(),
+        },
     ]..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
     final key = [
       formatDate(from),
@@ -344,7 +351,7 @@ class AppState extends ChangeNotifier {
     var hash = 0xcbf29ce484222325;
     for (final unit in utf8.encode(text)) {
       hash ^= unit;
-      hash = (hash * 0x100000001b3) & 0xFFFFFFFFFFFFFFFF;
+      hash *= 0x100000001b3; // Wraps modulo 2^64 on the Dart VM.
     }
     return hash.toUnsigned(64).toRadixString(16);
   }

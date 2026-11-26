@@ -442,7 +442,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Alerts for extra trips are not sent yet. The stop shows on your home screen with its arrival time.';
 
   @override
-  String get liveTripEnded => 'An extra trip you followed has ended';
+  String get liveTripEnded => 'An extra trip you followed is no longer shown';
 
   @override
   String get liveTripGone => 'This trip is no longer shown.';

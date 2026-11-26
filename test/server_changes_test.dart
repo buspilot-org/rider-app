@@ -331,16 +331,26 @@ void main() {
     now = now.add(const Duration(hours: 7));
     await state.refresh();
     expect(api.serviceDaysCalls, 2);
+    // The same exceptions in another order: no reload.
+    api.extraExceptions = [
+      {'start_date': '2027-02-01', 'end_date': '2027-02-01', 'type': 'removed', 'reason': 'A'},
+      {'start_date': '2027-02-02', 'end_date': '2027-02-02', 'type': 'removed', 'reason': 'B'},
+    ];
+    await state.refresh();
+    expect(api.serviceDaysCalls, 3);
+    api.extraExceptions = api.extraExceptions.reversed.toList();
+    await state.refresh();
+    expect(api.serviceDaysCalls, 3);
     // Staff add a holiday break: the calendar changed, load again at once.
     api.extraExceptions = [
       {'start_date': '2026-11-30', 'end_date': '2026-11-30', 'type': 'removed', 'reason': 'Sports day'},
     ];
     await state.refresh();
-    expect(api.serviceDaysCalls, 3);
+    expect(api.serviceDaysCalls, 4);
     expect(state.catalog.serviceDays[calendarId], isNot(contains('2026-11-30')));
     // A new operator (joined, or a followed public route): load again.
     await state.leaveOperator(opId);
-    expect(api.serviceDaysCalls, 4);
+    expect(api.serviceDaysCalls, 5);
   });
 
   test('a calendar without loaded service days uses its own rules', () {
@@ -517,18 +527,30 @@ void main() {
       expect(find.text('07:52 · in 12 min'), findsWidgets);
     });
 
-    testWidgets('a followed stop of an ended trip: "trip ended" and unfollow', (tester) async {
+    testWidgets('a followed stop of a trip no longer shown: a note and unfollow', (tester) async {
       phoneSize(tester);
       final api = FakeApi(joined: true)
         ..liveTrips = [liveTrip(visibleUntil: '2026-11-22T22:00:00Z')];
       api.subscriptions.add({..._sub(2), 'id': 'sub-live', 'pattern_id': null, 'trip_instance_id': 'live-1'});
       await pumpApp(tester, api: api);
-      expect(find.text('An extra trip you followed has ended'), findsOneWidget);
+      expect(find.text('An extra trip you followed is no longer shown'), findsOneWidget);
+      // The only follow: no "follow your stop" hint above it.
+      expect(find.text('Follow your stop'), findsNothing);
       await tester.tap(find.widgetWithText(TextButton, 'Stop following'));
       await tester.runAsync(() => Future<void>.delayed(Duration.zero));
       await tester.pumpAndSettle();
       expect(api.subscriptions, isEmpty);
-      expect(find.text('An extra trip you followed has ended'), findsNothing);
+      expect(find.text('An extra trip you followed is no longer shown'), findsNothing);
+    });
+
+    testWidgets('offline with an old cache: no "no longer shown" note', (tester) async {
+      final store = await freshStore();
+      final api = FakeApi(joined: true);
+      api.subscriptions.add({..._sub(2), 'id': 'sub-live', 'pattern_id': null, 'trip_instance_id': 'live-1'});
+      await pumpApp(tester, api: api, store: store);
+      api.offline = true;
+      await pumpApp(tester, api: api, store: store);
+      expect(find.text('An extra trip you followed is no longer shown'), findsNothing);
     });
 
     testWidgets('a tapped alert for a live trip opens it at the stop', (tester) async {

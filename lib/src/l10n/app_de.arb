@@ -133,6 +133,6 @@
   "liveTripVisibleUntil": "Sichtbar bis {time}",
   "liveTripNextStop": "Als Nächstes: {stop}",
   "liveTripNoAlerts": "Für Sonderfahrten werden noch keine Benachrichtigungen gesendet. Die Haltestelle erscheint mit ihrer Ankunftszeit auf dem Startbildschirm.",
-  "liveTripEnded": "Eine Sonderfahrt, der du gefolgt bist, ist vorbei",
+  "liveTripEnded": "Eine Sonderfahrt, der du folgst, wird nicht mehr angezeigt",
   "liveTripGone": "Diese Fahrt wird nicht mehr angezeigt."
 }

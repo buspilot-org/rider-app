@@ -446,7 +446,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get liveTripEnded =>
-      'Eine Sonderfahrt, der du gefolgt bist, ist vorbei';
+      'Eine Sonderfahrt, der du folgst, wird nicht mehr angezeigt';
 
   @override
   String get liveTripGone => 'Diese Fahrt wird nicht mehr angezeigt.';

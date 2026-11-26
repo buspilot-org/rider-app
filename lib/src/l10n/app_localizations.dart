@@ -823,7 +823,7 @@ abstract class AppLocalizations {
   /// No description provided for @liveTripEnded.
   ///
   /// In en, this message translates to:
-  /// **'An extra trip you followed has ended'**
+  /// **'An extra trip you followed is no longer shown'**
   String get liveTripEnded;
 
   /// No description provided for @liveTripGone.
