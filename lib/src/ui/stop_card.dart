@@ -27,7 +27,8 @@ StopStatus? stopStatus(Visit? visit, DateTime now) {
     VisitKind.cancelled => StopStatus.cancelled,
     VisitKind.passed => null,
     VisitKind.atStop => StopStatus.atStop,
-    VisitKind.scheduled => StopStatus.notStarted,
+    // A trip on the timetable only (no live tracking): nothing to say yet.
+    VisitKind.scheduled => visit.instance == null ? null : StopStatus.notStarted,
     VisitKind.onTheWay || VisitKind.delayed when offRoute => StopStatus.unknown,
     VisitKind.onTheWay || VisitKind.delayed when soon => StopStatus.arriving,
     VisitKind.delayed => StopStatus.delayed,
@@ -126,14 +127,23 @@ class StopCard extends StatelessWidget {
                     ),
                     if (status != null) ...[
                       const SizedBox(width: 8),
-                      _StatusChip(text: stopStatusText(context, status), tint: colors!.tint, color: colors.text),
+                      ConstrainedBox(
+                        // Long labels (German, large text) ellipsize instead of overflowing.
+                        constraints: const BoxConstraints(maxWidth: 180),
+                        child: _StatusChip(
+                          text: stopStatusText(context, status),
+                          tint: colors!.tint,
+                          color: colors.text,
+                        ),
+                      ),
                     ],
                   ],
                 ),
               ),
               const SizedBox(height: 8),
               _Arrival(visit: visit, status: status, stopName: stopName, op: op, now: now),
-              if (progress != null) ...[
+              // No signal: no bus dot moving on a guess (like the no-signal map marker).
+              if (progress != null && status != StopStatus.unknown) ...[
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -153,10 +163,20 @@ class StopCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       [
-                        if (visit != null && status == null) phaseText(context, visit.tripPhase),
+                        if (visit != null && status == null && visit.kind != VisitKind.scheduled)
+                          phaseText(context, visit.tripPhase),
                         if (visit?.trip case final trip?)
                           l.tripAt(
-                            formatTime(atOffset(locationOf(op), serviceDay(locationOf(op), now), trip.startTime), op),
+                            formatTime(
+                              atOffset(
+                                locationOf(op),
+                                visit!.instance == null
+                                    ? serviceDay(locationOf(op), now)
+                                    : parseDate(visit.instance!.serviceDate),
+                                trip.startTime,
+                              ),
+                              op,
+                            ),
                           ),
                         if (subscription.isMuted(now))
                           l.alertPausedThrough(formatPausedThrough(subscription.mutedUntil!, op, context.lang)),
@@ -164,7 +184,11 @@ class StopCard extends StatelessWidget {
                       style: muted,
                     ),
                   ),
-                  if (route != null) RouteBadge(route: route!),
+                  if (route != null)
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 140),
+                      child: RouteBadge(route: route!),
+                    ),
                   IconButton(
                     tooltip: l.alertSettings,
                     visualDensity: VisualDensity.compact,
@@ -251,7 +275,10 @@ class _Arrival extends StatelessWidget {
     final t = formatTime(time, op);
     final minutes = minutesUntil(time, now);
     final Widget big;
-    if (minutes <= 0) {
+    if (minutes <= 0 && visit.kind == VisitKind.scheduled) {
+      // No live data: the timetable time, not "arriving now".
+      big = Text(t, style: eta);
+    } else if (minutes <= 0) {
       big = Text(l.etaDue, style: theme.textTheme.titleLarge?.copyWith(color: etaColor));
     } else if (visit.kind == VisitKind.scheduled && minutes > 60) {
       big = Text(t, style: eta);
@@ -286,11 +313,13 @@ class _EtaMinutes extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final n = '$minutes';
+    final prefixStyle = unitStyle?.copyWith(color: Theme.of(context).colorScheme.onSurface);
     final at = text.indexOf(n);
     final spans = at < 0
         ? [TextSpan(text: text, style: unitStyle)]
         : [
-            if (at > 0) TextSpan(text: text.substring(0, at)),
+            // "あと" / "in" in the text colour, as on the App board; "5分" in the ETA colour.
+            if (at > 0) TextSpan(text: text.substring(0, at), style: prefixStyle),
             TextSpan(text: n, style: numberStyle),
             if (at + n.length < text.length) TextSpan(text: text.substring(at + n.length)),
           ];
@@ -313,7 +342,12 @@ class _StatusChip extends StatelessWidget {
     key: const ValueKey('stop-status'),
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(999)),
-    child: Text(text, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color)),
+    child: Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color),
+    ),
   );
 }
 
@@ -331,9 +365,8 @@ class TripProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = context.brand;
-    return Semantics(
-      label: context.l10n.etaProgress,
-      value: '${(value * 100).round()}%',
+    // Decorative: the ETA text above says the same for screen readers.
+    return ExcludeSemantics(
       child: SizedBox(
         height: _dot,
         child: LayoutBuilder(

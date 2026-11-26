@@ -144,6 +144,5 @@
   "etaInMinutes": "あと {minutes}分",
   "etaDue": "まもなく到着します",
   "etaArrivesAt": "「{stop}」に {time} 到着予定",
-  "etaArrivesAround": "「{stop}」に {time} ごろ到着予定（約{minutes}分遅れ）",
-  "etaProgress": "ご利用の停留所までの運行状況"
+  "etaArrivesAround": "「{stop}」に {time} ごろ到着予定（約{minutes}分遅れ）"
 }

@@ -169,6 +169,5 @@
   "etaArrivesAt": "Arrives at {stop} at {time}",
   "@etaArrivesAt": {"placeholders": {"stop": {"type": "String"}, "time": {"type": "String"}}},
   "etaArrivesAround": "Should reach {stop} around {time} (about {minutes} min late)",
-  "@etaArrivesAround": {"placeholders": {"stop": {"type": "String"}, "time": {"type": "String"}, "minutes": {"type": "int"}}},
-  "etaProgress": "Trip progress to your stop"
+  "@etaArrivesAround": {"placeholders": {"stop": {"type": "String"}, "time": {"type": "String"}, "minutes": {"type": "int"}}}
 }

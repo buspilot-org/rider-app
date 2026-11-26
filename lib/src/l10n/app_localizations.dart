@@ -891,12 +891,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Should reach {stop} around {time} (about {minutes} min late)'**
   String etaArrivesAround(String stop, String time, int minutes);
-
-  /// No description provided for @etaProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'Trip progress to your stop'**
-  String get etaProgress;
 }
 
 class _AppLocalizationsDelegate

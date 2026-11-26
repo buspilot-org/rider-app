@@ -285,8 +285,9 @@ double? tripProgress(Visit visit, Operator? op, DateTime now) {
   }
   final arrival = visit.time;
   final start = tripStart(visit, op, now);
-  if (arrival == null || start == null || !arrival.isAfter(start)) return null;
+  if (arrival == null || start == null) return null;
   final total = arrival.difference(start).inSeconds;
+  if (total <= 0) return null;
   final done = now.difference(start).inSeconds;
   return (done / total).clamp(0.0, 1.0);
 }

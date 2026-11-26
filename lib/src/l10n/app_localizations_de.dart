@@ -455,7 +455,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get statusOnTime => 'Pünktlich';
 
   @override
-  String get statusDelayed => 'Etwas später';
+  String get statusDelayed => 'Etwas verspätet';
 
   @override
   String get statusArriving => 'Kommt gleich';
@@ -479,14 +479,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String etaArrivesAt(String stop, String time) {
-    return 'Ankunft $stop um $time';
+    return 'Erreicht $stop um $time';
   }
 
   @override
   String etaArrivesAround(String stop, String time, int minutes) {
-    return 'Ankunft $stop gegen $time (etwa $minutes Min. später)';
+    return 'Erreicht $stop gegen $time (etwa $minutes Min. später)';
   }
-
-  @override
-  String get etaProgress => 'Fahrtfortschritt bis zu deiner Haltestelle';
 }

@@ -458,7 +458,4 @@ class AppLocalizationsJa extends AppLocalizations {
   String etaArrivesAround(String stop, String time, int minutes) {
     return '「$stop」に $time ごろ到着予定（約$minutes分遅れ）';
   }
-
-  @override
-  String get etaProgress => 'ご利用の停留所までの運行状況';
 }

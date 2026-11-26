@@ -121,6 +121,8 @@ void main() {
     ]);
     _expectChip(tester, 'Position unknown', light.unknownTint, light.unknownText);
     expect(find.text('We are checking where the bus is (since 07:36). Please wait a moment.'), findsOneWidget);
+    // No bus dot moving on a guess.
+    expect(find.byKey(const ValueKey('bus-dot')), findsNothing);
   });
 
   testWidgets('cancelled', (tester) async {
@@ -131,11 +133,55 @@ void main() {
     expect(find.byKey(const ValueKey('bus-dot')), findsNothing);
   });
 
-  testWidgets('not started: the timetable time, no progress bar', (tester) async {
-    await _pump(tester, const []);
+  testWidgets('not started: planned trip, no progress bar', (tester) async {
+    await _pump(tester, [instance(id: 'ti-0730', tripId: trip0730, serviceDate: '2026-11-23', status: 'planned')]);
     _expectChip(tester, 'Not started', light.primaryTint, light.onPrimaryTint);
     expect(find.text('in 11 min', findRichText: true), findsOneWidget);
     expect(find.byKey(const ValueKey('bus-dot')), findsNothing);
+  });
+
+  testWidgets('timetable only: no chip; after its time, the time instead of "arriving now"', (tester) async {
+    await _pump(tester, const []);
+    expect(find.byKey(const ValueKey('stop-status')), findsNothing);
+    expect(find.text('in 11 min', findRichText: true), findsOneWidget);
+    expect(find.text('Not started'), findsNothing);
+
+    await _pump(tester, const [], now: kobe(7, 53));
+    expect(find.text('07:51'), findsOneWidget);
+    expect(find.text('Arriving now'), findsNothing);
+  });
+
+  testWidgets('live ETA now: arriving now', (tester) async {
+    await _pump(tester, [
+      _active([event(5, 'upcoming', eta: kobe(7, 40))]),
+    ]);
+    _expectChip(tester, 'Arriving soon', light.arrivingTint, light.arrivingText);
+    expect(find.text('Arriving now'), findsOneWidget);
+  });
+
+  testWidgets('late and soon: arriving wins; off route and soon: unknown wins', (tester) async {
+    // Scheduled 07:51, ETA 07:55 (4 min late), now 07:52.
+    await _pump(tester, [
+      _active([event(5, 'upcoming', eta: kobe(7, 55))]),
+    ], now: kobe(7, 52));
+    _expectChip(tester, 'Arriving soon', light.arrivingTint, light.arrivingText);
+    expect(find.text('Should reach Kitano-zaka around 07:55 (about 4 min late)'), findsOneWidget);
+
+    await _pump(tester, [
+      _active([event(5, 'upcoming', eta: kobe(7, 55))], offRouteSince: kobe(7, 50)),
+    ], now: kobe(7, 52));
+    _expectChip(tester, 'Position unknown', light.unknownTint, light.unknownText);
+  });
+
+  testWidgets('dark theme: dark status colours', (tester) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await _pump(tester, [
+      _active([event(5, 'upcoming', eta: kobe(7, 52))]),
+    ]);
+    const dark = BuspilotColors.dark;
+    _expectChip(tester, 'On time', dark.onTimeTint, dark.onTimeText);
+    expect(_etaColor(tester, 'in 12 min', '12'), dark.primary);
   });
 
   testWidgets('more than an hour ahead: the time instead of minutes', (tester) async {
@@ -164,7 +210,7 @@ void main() {
     expect(find.text('「北野坂」に 07:57 ごろ到着予定（約6分遅れ）'), findsOneWidget);
 
     await pumpApp(tester, api: api, now: kobe(7, 40), language: 'de');
-    expect(find.text('Etwas später'), findsOneWidget);
+    expect(find.text('Etwas verspätet'), findsOneWidget);
     expect(find.text('in 17 Min.', findRichText: true), findsOneWidget);
   });
 }

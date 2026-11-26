@@ -1,5 +1,6 @@
 import 'package:buspilot_rider/src/data/models.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'fakes/fake_api.dart';
 import 'fakes/harness.dart';
@@ -124,7 +125,8 @@ void main() {
     expect(find.text('今日のマイ停留所'), findsOneWidget);
     expect(find.text('あと 11分', findRichText: true), findsOneWidget);
     expect(find.text('「北野坂」に 07:51 到着予定'), findsOneWidget);
-    expect(find.text('運行前'), findsOneWidget);
+    // Timetable only, no live tracking: no status chip.
+    expect(find.byKey(const ValueKey('stop-status')), findsNothing);
   });
 }
 

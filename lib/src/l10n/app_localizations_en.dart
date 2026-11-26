@@ -482,7 +482,4 @@ class AppLocalizationsEn extends AppLocalizations {
   String etaArrivesAround(String stop, String time, int minutes) {
     return 'Should reach $stop around $time (about $minutes min late)';
   }
-
-  @override
-  String get etaProgress => 'Trip progress to your stop';
 }
