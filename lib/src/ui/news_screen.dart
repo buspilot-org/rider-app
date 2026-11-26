@@ -44,6 +44,9 @@ class _NewsScreenState extends State<NewsScreen> {
             icon: Badge(
               isLabelVisible: state.hiddenCategories.isNotEmpty,
               smallSize: 8,
+              // A dot without a number: yamabuki is too faint on the light
+              // app bar (under 3:1), so this one is in the brand colour.
+              backgroundColor: Theme.of(context).colorScheme.primary,
               child: const Icon(Icons.filter_list),
             ),
             onPressed: () => showModalBottomSheet<void>(

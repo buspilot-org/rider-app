@@ -177,13 +177,14 @@ class UpdatedLine extends StatelessWidget {
     final stale = state.offline || state.serverError;
     final scheme = Theme.of(context).colorScheme;
     final l = context.l10n;
-    // Calm, not red: the data is only older (the brand's 'unknown' colour).
-    final color = stale ? context.brand.unknownText : scheme.onSurfaceVariant;
+    // Calm, not red: the data is only older. The text stays muted; the icon
+    // takes the brand's 'unknown' colour so the state is still visible.
+    final color = scheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: Row(
         children: [
-          Icon(stale ? Icons.cloud_off : Icons.update, size: 16, color: color),
+          Icon(stale ? Icons.cloud_off : Icons.update, size: 16, color: stale ? context.brand.unknown : color),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

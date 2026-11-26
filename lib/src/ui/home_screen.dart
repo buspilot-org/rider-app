@@ -140,7 +140,11 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
       appBar: AppBar(
         title: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [const BrandMark(), const SizedBox(width: 8), Text(l.appTitle)],
+          children: [
+            const BrandMark(),
+            const SizedBox(width: 8),
+            Flexible(child: Text(l.appTitle, overflow: TextOverflow.ellipsis)),
+          ],
         ),
         actions: [
           IconButton(
