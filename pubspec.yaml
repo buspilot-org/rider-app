@@ -76,8 +76,8 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Map markers (with 2.0x/3.0x variants) and the font licence. The brand
-  # files are not covered by the AGPL; see README.
+  # Map markers (with 2.0x/3.0x variants) and the font licence. The map
+  # markers are not covered by the AGPL (all rights reserved); see README.
   assets:
     - assets/markers/
     - assets/fonts/OFL.txt
