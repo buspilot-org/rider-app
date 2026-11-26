@@ -7,6 +7,8 @@
 //   flutter test integration_test -d <device> --dart-define-from-file=config/local.json
 import 'package:buspilot_rider/src/app.dart';
 import 'package:buspilot_rider/src/config.dart';
+import 'package:buspilot_rider/src/data/arrivals.dart';
+import 'package:buspilot_rider/src/data/models.dart';
 import 'package:buspilot_rider/src/data/supabase_api.dart';
 import 'package:buspilot_rider/src/state/app_state.dart';
 import 'package:buspilot_rider/src/state/local_store.dart';
@@ -98,6 +100,53 @@ void main() {
     expect(rows, hasLength(1));
     expect(rows.single['stop_sequence'], 2);
     expect(rows.single['device_id'], userId);
+
+    // Live trips with planned stops (tool/fake_live_trips.sh adds the
+    // "Museum tour" for the demo audience): the real query, then follow a
+    // stop of it, save it again (upsert on device_id, trip_instance_id,
+    // stop_sequence) and read it back.
+    const tourId = 'd0000000-0000-4000-8000-0000000009d1';
+    final today = formatDate(serviceDay(locationOf(null), DateTime.now()));
+    final live = await api.fetchLiveTrips(
+      operatorIds: ['d0000000-0000-4000-8000-000000000001'],
+      serviceDates: [today],
+    );
+    if (live.isEmpty) {
+      // ignore: avoid_print
+      print('No live trip in the database: run tool/fake_live_trips.sh to test live trips.');
+    } else {
+      final tour = TripInstance(live.singleWhere((t) => t['id'] == tourId));
+      expect(tour.isStandaloneLive, isTrue);
+      expect(tour.plannedStops.map((s) => s.stopName.resolve('en')), ['Shin-Kobe Station', 'Sannomiya', 'School']);
+      expect(tour.events, hasLength(3));
+
+      await tester.tap(find.text('Museum tour'));
+      await pumpUntil(tester, find.byKey(const ValueKey('live-stop-2')));
+      await tester.tap(find.byKey(const ValueKey('live-stop-2')));
+      await pumpUntil(tester, find.byKey(const Key('save-alert')));
+      await tester.tap(find.byKey(const Key('save-alert')));
+      // Back on the trip once the settings screen has closed: the stop's
+      // bell now opens its settings.
+      await pumpUntil(tester, find.byTooltip('Alert settings'));
+      for (var i = 0; i < 50 && find.byKey(const Key('save-alert')).evaluate().isNotEmpty; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await pumpUntil(tester, find.byKey(const ValueKey('$tourId:2')));
+
+      final followed = state.catalog.liveSubscriptionFor(tourId, 2)!;
+      await api.saveSubscription(followed.copyWith(triggerValue: 10));
+      final liveRows = await Supabase.instance.client
+          .from('subscription')
+          .select()
+          .not('trip_instance_id', 'is', null);
+      expect(liveRows, hasLength(1));
+      expect(liveRows.single['trip_instance_id'], tourId);
+      expect(liveRows.single['pattern_id'], isNull);
+      expect(liveRows.single['stop_sequence'], 2);
+      expect(liveRows.single['trigger_value'], 10);
+    }
 
     // Delete my data from settings: rpc/delete_my_device, then sign out.
     await tester.tap(find.byTooltip('Settings'));

@@ -155,5 +155,6 @@
   "liveTripNextStop": "Next: {stop}",
   "@liveTripNextStop": {"placeholders": {"stop": {"type": "String"}}},
   "liveTripNoAlerts": "Alerts for extra trips are not sent yet. The stop shows on your home screen with its arrival time.",
+  "liveTripEnded": "An extra trip you followed has ended",
   "liveTripGone": "This trip is no longer shown."
 }

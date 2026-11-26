@@ -443,6 +443,11 @@ class Catalog {
   }();
 
   DateTime? get serviceDaysFrom => _date(json['service_days_from']);
+
+  /// Calendars [serviceDays] were loaded for (null: all of them).
+  late final Set<String>? serviceDaysCalendars = (json['service_days_calendars'] as List?)
+      ?.whereType<String>()
+      .toSet();
   DateTime? get serviceDaysTo => _date(json['service_days_to']);
 
   static DateTime? _date(Object? v) => v is String ? parseDate(v) : null;
@@ -458,7 +463,8 @@ class Catalog {
     final d = dateOnly(day);
     final from = serviceDaysFrom;
     final to = serviceDaysTo;
-    if (from != null && to != null && !d.isBefore(from) && !d.isAfter(to)) {
+    final covered = serviceDaysCalendars?.contains(calendar.id) ?? true;
+    if (covered && from != null && to != null && !d.isBefore(from) && !d.isAfter(to)) {
       return serviceDays[calendar.id]?.contains(formatDate(d)) ?? false;
     }
     if (!calendar.runsOn(d)) return false;

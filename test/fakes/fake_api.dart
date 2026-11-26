@@ -205,6 +205,9 @@ class FakeApi implements BuspilotApi {
   /// Monday 2026-11-23 (a holiday) keep their buses.
   Map<String, Json> holidays = {};
 
+  /// Calendar exceptions staff added to the demo calendar.
+  List<Json> extraExceptions = [];
+
   /// Posts the server returns (null: the demo catalog's).
   List<Json>? posts;
 
@@ -270,7 +273,7 @@ class FakeApi implements BuspilotApi {
     await catalogGate?.future;
     _check();
     calls.add('catalog');
-    final json = demoCatalog(subscriptions: List.of(subscriptions), member: _member);
+    final json = _withExceptions(demoCatalog(subscriptions: List.of(subscriptions), member: _member));
     if (posts != null && _member) json['posts'] = List.of(posts!);
     if (withForeignPublicRoute) {
       (json['operators'] as List).add({
@@ -301,7 +304,7 @@ class FakeApi implements BuspilotApi {
     _check();
     serviceDaysCalls++;
     catalogFrom = from;
-    final json = demoCatalog(subscriptions: List.of(subscriptions), member: _member);
+    final json = _withExceptions(demoCatalog(subscriptions: List.of(subscriptions), member: _member));
     final serviceDays = <Json>[];
     for (final c in (json['calendars'] as List).cast<Json>()) {
       if (!operatorIds.contains(c['operator_id'])) continue;
@@ -323,6 +326,13 @@ class FakeApi implements BuspilotApi {
             {'date': e.key, 'name': e.value},
       ],
     };
+  }
+
+  Json _withExceptions(Json json) {
+    for (final c in (json['calendars'] as List).cast<Json>()) {
+      c['calendar_exception'] = [...(c['calendar_exception'] as List? ?? const []), ...extraExceptions];
+    }
+    return json;
   }
 
   @override

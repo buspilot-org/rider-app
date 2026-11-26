@@ -1,6 +1,8 @@
 // The app on the server changes of buspilot-org/server#3 and #4: service
 // days and holidays, post categories, the mini map limit, live trips with
 // planned stops, push messages, join links and branding images.
+import 'dart:async';
+
 import 'package:buspilot_rider/src/data/branding.dart';
 import 'package:buspilot_rider/src/data/ewkb.dart';
 import 'package:buspilot_rider/src/data/invite_link.dart';
@@ -105,6 +107,9 @@ void main() {
       expect(check('$backend/storage/v1/object/public/operator-branding/$opId/../x/logo.png'), isNull);
       expect(check('$backend/storage/v1/object/public/operator-branding/$opId/a%2F..%2Fb.png'), isNull);
       expect(check('$logo?download=1'), isNull);
+      expect(check('$backend/storage/v1/object/public/operator-branding/$opId/logo%20x.png'), isNull);
+      expect(check('$backend/storage/v1/object/public/operator-branding/$opId/logo%3Cx%3E.png'), isNull);
+      expect(check('$backend/storage/v1/object/public/operator-branding/$opId/2026/cover_v2.webp'), isNotNull);
       expect(check('https://user@abc.supabase.co/storage/v1/object/public/operator-branding/$opId/logo.png'), isNull);
       expect(brandingImageUrl(logo, backendUrl: '', operatorId: opId), isNull);
     });
@@ -135,7 +140,11 @@ void main() {
         expect(PushAlert.fromData(_alertData(kind: k)), isNotNull);
       }
       // Empty strings are "not set" (live trips have no pattern).
-      expect(PushAlert.fromData(_alertData(patternId: ''))!.patternId, isNull);
+      final live = PushAlert.fromData(_alertData(patternId: '', tripInstanceId: 'live-1'))!;
+      expect(live.patternId, isNull);
+      expect(live.tripInstanceId, 'live-1');
+      // A stop sequence that is not a number: no stop to highlight.
+      expect(PushAlert.fromData(_alertData(seq: 'x'))!.stopSequence, isNull);
     });
 
     testWidgets('a tapped notification opens the route at that stop and trip', (tester) async {
@@ -153,6 +162,48 @@ void main() {
       expect(screen.tripInstanceId, 'ti-0810');
       final chip = tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '08:10'));
       expect(chip.selected, isTrue);
+    });
+
+    testWidgets('pattern and trip in one alert: the route, that trip; bad sequence highlights nothing', (tester) async {
+      final push = FakePush();
+      final api = FakeApi(joined: true, instances: [
+        instance(id: 'ti-0730', tripId: trip0730, serviceDate: '2026-11-23', status: 'active'),
+      ]);
+      await pumpApp(tester, api: api, push: push);
+      push.opened.add(PushAlert.fromData(_alertData(seq: 'x'))!);
+      await tester.pumpAndSettle();
+      final screen = tester.widget<RouteScreen>(find.byType(RouteScreen));
+      expect(screen.patternId, patternId);
+      expect(screen.tripInstanceId, 'ti-0730');
+      expect(screen.highlightSequence, isNull);
+      expect(find.byType(LiveTripScreen), findsNothing);
+    });
+
+    testWidgets('a pending notification is dropped after delete my data', (tester) async {
+      final push = FakePush();
+      final api = FakeApi(joined: true);
+      final state = await pumpApp(tester, api: api, push: push);
+      await tester.runAsync(state.deleteMyData);
+      await tester.pumpAndSettle();
+      push.opened.add(PushAlert.fromData(_alertData())!);
+      await tester.pumpAndSettle();
+      // Onboard again and join: the old device's alert does not open.
+      await tester.runAsync(() => state.finishOnboarding('en'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RouteScreen), findsNothing);
+    });
+
+    testWidgets('a notification and an invite link: the route, then the join screen on top', (tester) async {
+      final push = FakePush()..initial = PushAlert.fromData(_alertData())!;
+      final links = StreamController<Uri>();
+      links.add(Uri.parse('https://buspilot.org/join#code=DEMO-KOBE-2026'));
+      await pumpApp(tester, api: FakeApi(joined: true), push: push, links: links.stream);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('join-button')), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(RouteScreen), findsOneWidget);
+      await links.close();
     });
 
     testWidgets('the notification that started the app opens once it is ready', (tester) async {
@@ -189,9 +240,14 @@ void main() {
       expect(find.text('My stops today'), findsOneWidget);
     });
 
-    testWidgets('channels are created in the app language and renamed with it', (tester) async {
+    testWidgets('channels are created after opt-in, in the app language', (tester) async {
       final push = FakePush();
-      final state = await pumpApp(tester, api: FakeApi(joined: true), push: push);
+      final store = await freshStore();
+      final notYet = FakePush();
+      await pumpApp(tester, api: FakeApi(joined: true), push: notYet, store: store);
+      expect(notYet.channels, isEmpty);
+      await store.setPushOptedIn();
+      final state = await pumpApp(tester, api: FakeApi(joined: true), push: push, store: store);
       expect(push.channels, {
         arrivalAlertsChannel: 'Arrival alerts',
         tripChangesChannel: 'Delays and cancellations',
@@ -275,9 +331,28 @@ void main() {
     now = now.add(const Duration(hours: 7));
     await state.refresh();
     expect(api.serviceDaysCalls, 2);
+    // Staff add a holiday break: the calendar changed, load again at once.
+    api.extraExceptions = [
+      {'start_date': '2026-11-30', 'end_date': '2026-11-30', 'type': 'removed', 'reason': 'Sports day'},
+    ];
+    await state.refresh();
+    expect(api.serviceDaysCalls, 3);
+    expect(state.catalog.serviceDays[calendarId], isNot(contains('2026-11-30')));
     // A new operator (joined, or a followed public route): load again.
     await state.leaveOperator(opId);
-    expect(api.serviceDaysCalls, 3);
+    expect(api.serviceDaysCalls, 4);
+  });
+
+  test('a calendar without loaded service days uses its own rules', () {
+    final raw = demoCatalog()
+      ..['service_days'] = const <Json>[]
+      ..['service_days_from'] = '2026-11-01'
+      ..['service_days_to'] = '2026-11-30'
+      ..['service_days_calendars'] = ['another-calendar'];
+    final c = Catalog(raw);
+    expect(c.runsOn(c.calendars.single, DateTime.utc(2026, 11, 24)), isTrue);
+    final covered = Catalog({...raw, 'service_days_calendars': [calendarId]});
+    expect(covered.runsOn(covered.calendars.single, DateTime.utc(2026, 11, 24)), isFalse);
   });
 
   testWidgets('a foreground alert before start or after delete does not refresh', (tester) async {
@@ -440,6 +515,20 @@ void main() {
       expect(state.liveTrips.map((t) => t.id), ['live-1']);
       // Planned 10:20, ETA 07:52: early, so "in 12 min".
       expect(find.text('07:52 · in 12 min'), findsWidgets);
+    });
+
+    testWidgets('a followed stop of an ended trip: "trip ended" and unfollow', (tester) async {
+      phoneSize(tester);
+      final api = FakeApi(joined: true)
+        ..liveTrips = [liveTrip(visibleUntil: '2026-11-22T22:00:00Z')];
+      api.subscriptions.add({..._sub(2), 'id': 'sub-live', 'pattern_id': null, 'trip_instance_id': 'live-1'});
+      await pumpApp(tester, api: api);
+      expect(find.text('An extra trip you followed has ended'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Stop following'));
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pumpAndSettle();
+      expect(api.subscriptions, isEmpty);
+      expect(find.text('An extra trip you followed has ended'), findsNothing);
     });
 
     testWidgets('a tapped alert for a live trip opens it at the stop', (tester) async {

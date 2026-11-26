@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
 
@@ -87,9 +88,10 @@ class AppState extends ChangeNotifier {
     if (startup == StartupState.ready) unawaited(_touchDevice(force: true));
   }
 
-  /// Android notification channels, named in the app's language.
+  /// Android notification channels, named in the app's language. Only once
+  /// the user opted in to push: before that nothing is sent to this phone.
   Future<void> _createChannels() async {
-    if (!push.available) return;
+    if (!push.available || !store.pushOptedIn) return;
     final l = lookupAppLocalizations(Locale(language));
     await push.createChannels({
       arrivalAlertsChannel: l.channelArrivalAlerts,
@@ -284,9 +286,10 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  /// Service days change rarely: reuse the last ones for the same range and
-  /// operators for [_serviceDaysMaxAge], instead of loading 13 months of
-  /// days with every 30-second poll.
+  /// Service days change rarely: reuse the last ones for the same range,
+  /// operators and calendars (rules and exceptions, read with every refresh)
+  /// for [_serviceDaysMaxAge], instead of loading 13 months of days with
+  /// every 30-second poll. A calendar edit loads them again at once.
   static const _serviceDaysMaxAge = Duration(hours: 6);
 
   Future<Json> _serviceDays(Json catalogJson) async {
@@ -295,16 +298,31 @@ class AppState extends ChangeNotifier {
       for (final r in (catalogJson['routes'] as List? ?? const []))
         (r as Map)['operator_id'] as String,
     }.toList()..sort();
+    final calendars = [
+      for (final c in (catalogJson['calendars'] as List? ?? const []))
+        (c as Map).cast<String, dynamic>(),
+    ]..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
+    final key = [
+      formatDate(from),
+      operators.join(','),
+      _fnv1a(jsonEncode(calendars)),
+    ].join('|');
     final old = catalog.json;
     final at = DateTime.tryParse(old['service_days_at'] as String? ?? '');
     if (at != null &&
         clock().difference(at) < _serviceDaysMaxAge &&
         !clock().isBefore(at) &&
-        old['service_days_from'] == formatDate(from) &&
-        (old['service_days_operators'] as List?)?.join(',') == operators.join(',')) {
+        old['service_days_key'] == key) {
       return {
-        for (final k in ['service_days', 'holidays', 'service_days_from', 'service_days_to',
-            'service_days_operators', 'service_days_at'])
+        for (final k in [
+          'service_days',
+          'holidays',
+          'service_days_from',
+          'service_days_to',
+          'service_days_calendars',
+          'service_days_key',
+          'service_days_at',
+        ])
           k: old[k],
       };
     }
@@ -314,9 +332,21 @@ class AppState extends ChangeNotifier {
       'holidays': days['holidays'] ?? const [],
       'service_days_from': formatDate(from),
       'service_days_to': formatDate(to),
-      'service_days_operators': operators,
+      // Calendars the days were loaded for; others use their own rules.
+      'service_days_calendars': [for (final c in calendars) c['id']],
+      'service_days_key': key,
       'service_days_at': clock().toUtc().toIso8601String(),
     };
+  }
+
+  /// FNV-1a (64 bit) of [text]: a cache key that is stable across starts.
+  static String _fnv1a(String text) {
+    var hash = 0xcbf29ce484222325;
+    for (final unit in utf8.encode(text)) {
+      hash ^= unit;
+      hash = (hash * 0x100000001b3) & 0xFFFFFFFFFFFFFFFF;
+    }
+    return hash.toUnsigned(64).toRadixString(16);
   }
 
   Future<RedeemResult> redeem(String code) async {
@@ -344,6 +374,7 @@ class AppState extends ChangeNotifier {
   /// The user agreed after the explanation: ask the OS, then register.
   Future<void> enablePush() async {
     await store.setPushOptedIn();
+    unawaited(_createChannels());
     if (await push.requestPermission()) _listenForPushTokens();
   }
 

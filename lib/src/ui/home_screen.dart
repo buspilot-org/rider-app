@@ -57,6 +57,9 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
     final unread = state.unreadPosts;
 
     final cards = <StopCard>[];
+    // Followed stops of live trips that are no longer shown: the server
+    // keeps the subscription (and its mini map place), so offer to unfollow.
+    final ended = <Subscription>[];
     for (final sub in catalog.subscriptions) {
       if (sub.patternId case final patternId?) {
         final found = catalog.pattern(patternId);
@@ -90,7 +93,10 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
       } else if (sub.tripInstanceId case final tripId?) {
         // A stop of a live trip: shown while the trip is.
         final trip = state.liveTrip(tripId);
-        if (trip == null || trip.operatorId == null) continue;
+        if (trip == null || trip.operatorId == null) {
+          ended.add(sub);
+          continue;
+        }
         final visit = liveVisitAt(trip, sub.stopSequence, now);
         cards.add(StopCard(
           key: ValueKey('$tripId:${sub.stopSequence}'),
@@ -171,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> with Polling {
               if (cards.isEmpty)
                 _HintCard(title: l.homeNoStopsTitle, body: l.homeNoStopsBody),
               ...cards,
+              for (final sub in ended) _EndedLiveFollow(subscription: sub),
               if (liveTrips.isNotEmpty) ...[
                 _Header(l.liveTripsHeader),
                 for (final t in liveTrips) _LiveTripTile(trip: t, now: now),
@@ -236,6 +243,50 @@ class _Header extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// A followed stop of a live trip that has ended (past `visible_until`, or no
+/// longer visible): say so and let the rider unfollow it.
+class _EndedLiveFollow extends StatefulWidget {
+  const _EndedLiveFollow({required this.subscription});
+  final Subscription subscription;
+
+  @override
+  State<_EndedLiveFollow> createState() => _EndedLiveFollowState();
+}
+
+class _EndedLiveFollowState extends State<_EndedLiveFollow> {
+  bool _busy = false;
+
+  Future<void> _unfollow() async {
+    setState(() => _busy = true);
+    try {
+      await AppScope.read(context).unfollow(widget.subscription);
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    final l = context.l10n;
+    final op = state.catalog.operator(widget.subscription.operatorId);
+    return Card(
+      key: ValueKey('ended-${widget.subscription.tripInstanceId}:${widget.subscription.stopSequence}'),
+      child: ListTile(
+        leading: const Icon(Icons.event_busy_outlined),
+        title: Text(l.liveTripEnded),
+        subtitle: op == null ? null : Text(op.name.resolve(context.lang)),
+        trailing: TextButton(
+          onPressed: _busy ? null : _unfollow,
+          child: Text(l.unfollow),
+        ),
+      ),
+    );
+  }
 }
 
 /// A live trip on home: title, operator, and the next stop with its time.

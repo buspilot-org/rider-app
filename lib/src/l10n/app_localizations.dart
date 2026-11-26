@@ -820,6 +820,12 @@ abstract class AppLocalizations {
   /// **'Alerts for extra trips are not sent yet. The stop shows on your home screen with its arrival time.'**
   String get liveTripNoAlerts;
 
+  /// No description provided for @liveTripEnded.
+  ///
+  /// In en, this message translates to:
+  /// **'An extra trip you followed has ended'**
+  String get liveTripEnded;
+
   /// No description provided for @liveTripGone.
   ///
   /// In en, this message translates to:

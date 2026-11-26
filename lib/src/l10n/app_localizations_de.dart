@@ -445,5 +445,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Für Sonderfahrten werden noch keine Benachrichtigungen gesendet. Die Haltestelle erscheint mit ihrer Ankunftszeit auf dem Startbildschirm.';
 
   @override
+  String get liveTripEnded =>
+      'Eine Sonderfahrt, der du gefolgt bist, ist vorbei';
+
+  @override
   String get liveTripGone => 'Diese Fahrt wird nicht mehr angezeigt.';
 }

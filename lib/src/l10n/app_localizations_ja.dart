@@ -418,5 +418,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get liveTripNoAlerts => '臨時便の通知はまだ送信されません。停留所はホーム画面に到着時刻とともに表示されます。';
 
   @override
+  String get liveTripEnded => 'フォローしていた臨時便は終了しました';
+
+  @override
   String get liveTripGone => 'この便の表示は終了しました。';
 }

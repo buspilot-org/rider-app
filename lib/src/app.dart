@@ -145,34 +145,47 @@ class _RiderAppState extends State<RiderApp> with WidgetsBindingObserver {
       await state.refresh();
       target = screen();
     }
-    if (target == null) return; // Not visible any more: stay on home.
+    // Not visible any more, or the data was deleted meanwhile: stay put.
+    if (target == null || state.startup != StartupState.ready) return;
     final page = target;
-    await _navigator.currentState?.push(MaterialPageRoute(builder: (_) => page));
+    unawaited(_navigator.currentState?.push(MaterialPageRoute(builder: (_) => page)));
   }
 
   /// Opens the join screen for a link, or the stop of a tapped
   /// notification, once the app is ready (after the language was chosen and
   /// the device signed in).
   void _maybeOpenPending() {
+    // After "delete my data" (back to the language screen) a tapped
+    // notification of the deleted device is stale.
+    if (state.startup == StartupState.chooseLanguage) _pendingAlert = null;
     final nav = _navigator.currentState;
-    if (nav == null || state.startup != StartupState.ready) return;
+    if (nav == null || state.startup != StartupState.ready || _opening) return;
     final alert = _pendingAlert;
-    if (alert != null) {
-      _pendingAlert = null;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _openAlert(alert));
-      WidgetsBinding.instance.scheduleFrame();
-    }
     final code = _pendingCode;
-    if (code == null) return;
+    if (alert == null && code == null) return;
+    _pendingAlert = null;
     _pendingCode = null;
-    // After the frame that shows home, so the join screen lands on top.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _navigator.currentState?.push(
-        MaterialPageRoute(builder: (_) => JoinScreen(initialCode: code)),
-      );
+    _opening = true;
+    // After the frame that shows home. One at a time: the notification's
+    // screen first, then the join screen on top of it.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (alert != null) await _openAlert(alert);
+        if (code != null) {
+          unawaited(_navigator.currentState?.push(
+            MaterialPageRoute(builder: (_) => JoinScreen(initialCode: code)),
+          ));
+        }
+      } finally {
+        _opening = false;
+      }
+      // Anything that arrived meanwhile.
+      _maybeOpenPending();
     });
     WidgetsBinding.instance.scheduleFrame();
   }
+
+  bool _opening = false;
 
   @override
   Widget build(BuildContext context) {

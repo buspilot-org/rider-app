@@ -36,7 +36,10 @@ String? brandingImageUrl(
     if (segments[i] != prefix[i]) return null;
   }
   if (segments[prefix.length] != operatorId) return null;
+  // File names as the admin console uploads them (logo.png, cover.webp):
+  // an allow-list, so no "..", encoded slashes or other surprises.
   final rest = segments.skip(prefix.length + 1);
-  if (rest.any((s) => s.isEmpty || s == '.' || s == '..' || s.contains('/'))) return null;
+  final safe = RegExp(r'^[A-Za-z0-9._-]+$');
+  if (rest.any((s) => !safe.hasMatch(s) || s == '.' || s == '..')) return null;
   return uri.toString();
 }
