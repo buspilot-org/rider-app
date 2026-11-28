@@ -28,6 +28,12 @@ ThemeData buildTheme(Brightness brightness) {
     onSurface: bp.text,
     onSurfaceVariant: bp.textMuted,
     outlineVariant: bp.border,
+    // The brand's calm crimson instead of Material red (brand#4 D1):
+    // cancelled trips, holidays and delete actions.
+    error: bp.error,
+    onError: bp.onStatus,
+    errorContainer: bp.errorTint,
+    onErrorContainer: bp.errorText,
   );
   final base = ThemeData(colorScheme: scheme, useMaterial3: true, fontFamily: brandFontFamily, fontFamilyFallback: _fontFallback);
   return base.copyWith(

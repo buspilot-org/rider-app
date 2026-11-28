@@ -33,6 +33,9 @@ class BuspilotColors extends ThemeExtension<BuspilotColors> {
     required this.unknown,
     required this.unknownTint,
     required this.unknownText,
+    required this.error,
+    required this.errorTint,
+    required this.errorText,
   });
 
   /// Logo tile colour. The same in light and dark mode.
@@ -63,6 +66,9 @@ class BuspilotColors extends ThemeExtension<BuspilotColors> {
   final Color unknown;
   final Color unknownTint;
   final Color unknownText;
+  final Color error;
+  final Color errorTint;
+  final Color errorText;
 
   static const light = BuspilotColors(
     primary: Color(0xFF00777F),
@@ -90,6 +96,9 @@ class BuspilotColors extends ThemeExtension<BuspilotColors> {
     unknown: Color(0xFF6B7480),
     unknownTint: Color(0xFFECEEF0),
     unknownText: Color(0xFF4A5666),
+    error: Color(0xFFB42335),
+    errorTint: Color(0xFFFBE9EB),
+    errorText: Color(0xFF9B1C2C),
   );
 
   static const dark = BuspilotColors(
@@ -118,6 +127,9 @@ class BuspilotColors extends ThemeExtension<BuspilotColors> {
     unknown: Color(0xFF8A96A3),
     unknownTint: Color(0xFF232F33),
     unknownText: Color(0xFFA9B8BA),
+    error: Color(0xFFFF7A85),
+    errorTint: Color(0xFF3A1519),
+    errorText: Color(0xFFFF9AA2),
   );
 
   @override
@@ -147,6 +159,9 @@ class BuspilotColors extends ThemeExtension<BuspilotColors> {
     Color? unknown,
     Color? unknownTint,
     Color? unknownText,
+    Color? error,
+    Color? errorTint,
+    Color? errorText,
   }) {
     return BuspilotColors(
       primary: primary ?? this.primary,
@@ -174,6 +189,9 @@ class BuspilotColors extends ThemeExtension<BuspilotColors> {
       unknown: unknown ?? this.unknown,
       unknownTint: unknownTint ?? this.unknownTint,
       unknownText: unknownText ?? this.unknownText,
+      error: error ?? this.error,
+      errorTint: errorTint ?? this.errorTint,
+      errorText: errorText ?? this.errorText,
     );
   }
 
@@ -206,6 +224,9 @@ class BuspilotColors extends ThemeExtension<BuspilotColors> {
       unknown: Color.lerp(unknown, other.unknown, t)!,
       unknownTint: Color.lerp(unknownTint, other.unknownTint, t)!,
       unknownText: Color.lerp(unknownText, other.unknownText, t)!,
+      error: Color.lerp(error, other.error, t)!,
+      errorTint: Color.lerp(errorTint, other.errorTint, t)!,
+      errorText: Color.lerp(errorText, other.errorText, t)!,
     );
   }
 }

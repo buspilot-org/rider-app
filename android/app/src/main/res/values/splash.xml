@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash background: asagi, as the logo tile (brand README, Colour). -->
+<resources>
+    <color name="splash_background">#00777F</color>
+</resources>
