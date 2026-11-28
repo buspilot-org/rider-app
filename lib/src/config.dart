@@ -11,5 +11,9 @@ class AppConfig {
   /// MapLibre style URL. Empty: no map, the app shows arrival times only.
   static const mapStyleUrl = String.fromEnvironment('MAP_STYLE_URL');
 
+  /// Optional dark MapLibre style for the dark theme (brand Colour board,
+  /// "On the map"). Empty: the light style in both themes.
+  static const mapStyleUrlDark = String.fromEnvironment('MAP_STYLE_URL_DARK');
+
   static bool get isConfigured => supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty;
 }

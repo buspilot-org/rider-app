@@ -30,6 +30,7 @@ class AppState extends ChangeNotifier {
     String Function()? phoneLanguage,
     this.platform = 'android',
     this.mapStyleUrl = AppConfig.mapStyleUrl,
+    this.mapStyleUrlDark = AppConfig.mapStyleUrlDark,
   }) : live = live ?? api,
        clock = clock ?? DateTime.now,
        _phoneLanguage = phoneLanguage ?? _systemLanguage;
@@ -49,6 +50,15 @@ class AppState extends ChangeNotifier {
 
   /// MapLibre style; empty: no maps in this build.
   final String mapStyleUrl;
+
+  /// Dark MapLibre style for the dark theme; empty: [mapStyleUrl] in both.
+  final String mapStyleUrlDark;
+
+  /// Whether maps are dark in a theme of [brightness].
+  bool mapIsDark(Brightness brightness) => brightness == Brightness.dark && mapStyleUrlDark.isNotEmpty;
+
+  /// The map style for a theme of [brightness].
+  String mapStyleFor(Brightness brightness) => mapIsDark(brightness) ? mapStyleUrlDark : mapStyleUrl;
 
   StartupState startup = StartupState.loading;
   Catalog catalog = Catalog.empty();

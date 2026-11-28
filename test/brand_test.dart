@@ -32,4 +32,15 @@ void main() {
       expect(t.badgeTheme.textColor, bp.onAccent);
     }
   });
+
+  test('errors and cancellations use the brand crimson, not Material red (brand#4 D1)', () {
+    for (final b in Brightness.values) {
+      final t = buildTheme(b);
+      final bp = t.extension<BuspilotColors>()!;
+      expect(t.colorScheme.error, bp.error);
+      expect(t.colorScheme.onError, bp.onStatus);
+      expect(t.colorScheme.errorContainer, bp.errorTint);
+      expect(t.colorScheme.onErrorContainer, bp.errorText);
+    }
+  });
 }

@@ -28,6 +28,12 @@ ThemeData buildTheme(Brightness brightness) {
     onSurface: bp.text,
     onSurfaceVariant: bp.textMuted,
     outlineVariant: bp.border,
+    // The brand's calm crimson instead of Material red (brand#4 D1):
+    // cancelled trips, holidays and delete actions.
+    error: bp.error,
+    onError: bp.onStatus,
+    errorContainer: bp.errorTint,
+    onErrorContainer: bp.errorText,
   );
   final base = ThemeData(colorScheme: scheme, useMaterial3: true, fontFamily: brandFontFamily, fontFamilyFallback: _fontFallback);
   return base.copyWith(
@@ -40,22 +46,23 @@ ThemeData buildTheme(Brightness brightness) {
   );
 }
 
-/// The brand type scale (brand tokens/typography.json, app sizes in sp).
-/// Never smaller than 12.
+/// The brand type scale (brand tokens/typography.json, app sizes in sp):
+/// display 32, title 22, subtitle 18, body 16, label 14, caption 12. Every
+/// Material style maps to one of them; never smaller than 12.
 TextTheme _brandText(TextTheme t) {
   TextStyle? s(TextStyle? x, double size, FontWeight w, double height) =>
       x?.copyWith(fontSize: size, fontWeight: w, height: height, letterSpacing: 0);
   return t.copyWith(
     displaySmall: s(t.displaySmall, 32, FontWeight.w800, 1.3),
-    headlineSmall: s(t.headlineSmall, 24, FontWeight.w800, 1.35),
+    headlineSmall: s(t.headlineSmall, 22, FontWeight.w800, 1.4),
     titleLarge: s(t.titleLarge, 22, FontWeight.w800, 1.4),
     titleMedium: s(t.titleMedium, 18, FontWeight.w700, 1.5),
     titleSmall: s(t.titleSmall, 14, FontWeight.w700, 1.4),
     bodyLarge: s(t.bodyLarge, 16, FontWeight.w500, 1.7),
-    bodyMedium: s(t.bodyMedium, 14, FontWeight.w500, 1.6),
+    bodyMedium: s(t.bodyMedium, 16, FontWeight.w500, 1.7),
     bodySmall: s(t.bodySmall, 12, FontWeight.w500, 1.5),
     labelLarge: s(t.labelLarge, 14, FontWeight.w700, 1.4),
-    labelMedium: s(t.labelMedium, 12, FontWeight.w700, 1.4),
+    labelMedium: s(t.labelMedium, 14, FontWeight.w700, 1.4),
     labelSmall: s(t.labelSmall, 12, FontWeight.w500, 1.5),
   );
 }

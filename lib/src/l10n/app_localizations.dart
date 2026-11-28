@@ -100,7 +100,7 @@ abstract class AppLocalizations {
     Locale('ja'),
   ];
 
-  /// App name; not translated.
+  /// App name: Buspilot, in Japanese バスパイロット (brand App board).
   ///
   /// In en, this message translates to:
   /// **'Buspilot'**
@@ -193,7 +193,7 @@ abstract class AppLocalizations {
   /// No description provided for @joinRevoked.
   ///
   /// In en, this message translates to:
-  /// **'Your access was ended by the operator. Ask them for a new invitation.'**
+  /// **'This operator\'s buses are no longer shown. To continue, ask the operator for a new invitation.'**
   String get joinRevoked;
 
   /// No description provided for @joinRateLimited.
@@ -289,13 +289,13 @@ abstract class AppLocalizations {
   /// No description provided for @arrivalDue.
   ///
   /// In en, this message translates to:
-  /// **'{time} · now'**
+  /// **'{time} · arriving soon'**
   String arrivalDue(String time);
 
   /// No description provided for @arrivalDelayed.
   ///
   /// In en, this message translates to:
-  /// **'Delayed ~{minutes} min · {time}'**
+  /// **'About {minutes} min late · {time}'**
   String arrivalDelayed(int minutes, String time);
 
   /// No description provided for @arrivalAtStop.
@@ -373,14 +373,32 @@ abstract class AppLocalizations {
   /// No description provided for @routeGone.
   ///
   /// In en, this message translates to:
-  /// **'This route is no longer available.'**
+  /// **'This route can no longer be shown. Please go back.'**
   String get routeGone;
 
   /// No description provided for @mapUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Map not available'**
+  /// **'There is no map for this route. Arrival times are listed below.'**
   String get mapUnavailable;
+
+  /// No description provided for @mapFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The map could not be shown. Please try again.'**
+  String get mapFailed;
+
+  /// Badge on the bus marker when the bus is late (brand Icons board: +5分).
+  ///
+  /// In en, this message translates to:
+  /// **'+{minutes} min'**
+  String mapDelayBadge(int minutes);
+
+  /// Yamabuki label next to the bus on the map: minutes until it reaches the followed stop (brand App board: あと5分).
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String mapEtaLabel(int minutes);
 
   /// No description provided for @stopPassed.
   ///
@@ -745,7 +763,7 @@ abstract class AppLocalizations {
   /// No description provided for @postCategoryDelay.
   ///
   /// In en, this message translates to:
-  /// **'Delay'**
+  /// **'Running late'**
   String get postCategoryDelay;
 
   /// No description provided for @postCategoryGeneral.

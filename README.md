@@ -19,7 +19,8 @@ in its clone) and put its URL and publishable key in `config/local.json`
 {
   "SUPABASE_URL": "http://127.0.0.1:55321",
   "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_…",
-  "MAP_STYLE_URL": ""
+  "MAP_STYLE_URL": "",
+  "MAP_STYLE_URL_DARK": ""
 }
 ```
 
@@ -28,6 +29,11 @@ arrival times only, which is all most audiences may see anyway. Any style
 without a key works for development, for example
 `https://tiles.openfreemap.org/styles/liberty` (the tile provider for
 production is still open).
+
+`MAP_STYLE_URL_DARK` is an optional dark style for the dark theme. With it,
+the route casing takes the background colour and stops use the dark stop
+marker (brand Colour board, "On the map"). Empty means the light style in
+both themes, with the light casing and markers.
 
 ```bash
 flutter pub get
