@@ -183,7 +183,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get routeGone =>
-      'Diese Linie kann nicht mehr angezeigt werden. Geh zurück und wähle eine andere Linie.';
+      'Diese Linie kann nicht mehr angezeigt werden. Bitte geh zurück.';
 
   @override
   String get mapUnavailable =>
@@ -196,6 +196,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String mapDelayBadge(int minutes) {
     return '+$minutes Min.';
+  }
+
+  @override
+  String mapEtaLabel(int minutes) {
+    return '$minutes Min.';
   }
 
   @override

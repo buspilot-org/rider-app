@@ -52,7 +52,7 @@ void main() {
         final png = await paintBusMarker(
           markerAsset: 'assets/markers/bus-marker.png',
           colors: colors,
-          eta: 'あと 5分',
+          eta: 'あと5分',
           delay: '+5分',
         );
         final out = Platform.environment['BUS_MARKER_PNG'];

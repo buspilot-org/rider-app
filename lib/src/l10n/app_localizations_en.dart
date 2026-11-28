@@ -179,8 +179,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get routeGone =>
-      'This route can no longer be shown. Go back and choose another route.';
+  String get routeGone => 'This route can no longer be shown. Please go back.';
 
   @override
   String get mapUnavailable =>
@@ -192,6 +191,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String mapDelayBadge(int minutes) {
     return '+$minutes min';
+  }
+
+  @override
+  String mapEtaLabel(int minutes) {
+    return '$minutes min';
   }
 
   @override

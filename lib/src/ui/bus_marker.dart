@@ -132,6 +132,8 @@ Future<Uint8List> _paint(ui.Image marker, {required BuspilotColors colors, Strin
     delayText.paint(canvas, Offset(delayRect.left + _badgeBorder + 6, delayRect.top + _badgeBorder));
   }
 
+  etaText?.dispose();
+  delayText?.dispose();
   final picture = recorder.endRecording();
   final image = await picture.toImage((2 * hx * busMarkerPixelRatio).round(), (2 * hy * busMarkerPixelRatio).round());
   picture.dispose();

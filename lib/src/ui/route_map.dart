@@ -85,6 +85,18 @@ class _RouteMapState extends State<RouteMap> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final dark = AppScope.of(context).mapIsDark(Theme.of(context).brightness);
+    if (dark != _dark) {
+      // The style changes (only with a dark style URL): lines, symbols and
+      // images are drawn again once it has loaded.
+      _dark = dark;
+      _styleLoaded = false;
+    }
+  }
+
+  @override
   void didUpdateWidget(RouteMap old) {
     super.didUpdateWidget(old);
     if (old.tripInstanceId != widget.tripInstanceId) {
@@ -201,7 +213,7 @@ class _RouteMapState extends State<RouteMap> {
     if (base == 'assets/markers/bus-no-signal.png') return base;
     final eta = widget.etaMinutes;
     final delay = widget.delayMinutes;
-    final etaText = eta != null && eta > 0 ? l.etaInMinutes(eta) : null;
+    final etaText = eta != null && eta > 0 ? l.mapEtaLabel(eta) : null;
     final delayText = delay != null && delay > 0 ? l.mapDelayBadge(delay) : null;
     if (etaText == null && delayText == null) return base;
     final name = 'bus|$base|$_dark|${etaText ?? ''}|${delayText ?? ''}';
@@ -264,16 +276,8 @@ class _RouteMapState extends State<RouteMap> {
         ),
       );
     }
-    final state = AppScope.of(context);
-    final brightness = Theme.of(context).brightness;
-    if (state.mapIsDark(brightness) != _dark) {
-      // The style changes: its lines, symbols and images are redrawn when it
-      // has loaded.
-      _dark = state.mapIsDark(brightness);
-      _styleLoaded = false;
-    }
     return MapLibreMap(
-      styleString: state.mapStyleFor(brightness),
+      styleString: AppScope.of(context).mapStyleFor(Theme.of(context).brightness),
       initialCameraPosition: CameraPosition(
         target: LatLng(_data!.line.firstOrNull?.lat ?? 35.68, _data!.line.firstOrNull?.lng ?? 139.76),
         zoom: 13,

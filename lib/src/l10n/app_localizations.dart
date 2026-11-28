@@ -373,7 +373,7 @@ abstract class AppLocalizations {
   /// No description provided for @routeGone.
   ///
   /// In en, this message translates to:
-  /// **'This route can no longer be shown. Go back and choose another route.'**
+  /// **'This route can no longer be shown. Please go back.'**
   String get routeGone;
 
   /// No description provided for @mapUnavailable.
@@ -393,6 +393,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'+{minutes} min'**
   String mapDelayBadge(int minutes);
+
+  /// Yamabuki label next to the bus on the map: minutes until it reaches the followed stop (brand App board: あと5分).
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String mapEtaLabel(int minutes);
 
   /// No description provided for @stopPassed.
   ///

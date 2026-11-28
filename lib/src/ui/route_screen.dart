@@ -12,6 +12,27 @@ import 'widgets.dart';
 
 /// A route: its stops in order with state and ETA for one trip today, and the
 /// map where the audience may see it.
+/// The ETA label is shown up to this many minutes before the bus reaches
+/// the stop: close enough to matter, and few enough painted marker images
+/// (each minute is one image in the map style).
+const mapEtaMaxMinutes = 30;
+
+/// The labels of the bus on the map (brand App board): minutes until it
+/// reaches the first stop the rider follows that it has not reached ("あと
+/// 5分"), and how late it is ("+5分"), taken from that same stop, else from
+/// the bus's next stop. [followed] are the visits of the followed stops in
+/// route order. Null: no label.
+({int? eta, int? delay}) mapBusLabels({required List<Visit?> followed, required Visit? next, required DateTime now}) {
+  bool ahead(Visit? v) => v != null && (v.kind == VisitKind.onTheWay || v.kind == VisitKind.delayed);
+  final stop = followed.where(ahead).firstOrNull;
+  final time = stop == null ? null : stop.time ?? stop.scheduled;
+  final minutes = time == null ? null : minutesUntil(time, now);
+  final eta = minutes != null && minutes > 0 && minutes <= mapEtaMaxMinutes ? minutes : null;
+  final source = stop ?? (ahead(next) ? next : null);
+  final late = source != null && source.kind == VisitKind.delayed ? source.delay.inMinutes : 0;
+  return (eta: eta, delay: late > 0 ? late : null);
+}
+
 class RouteScreen extends StatefulWidget {
   const RouteScreen({
     super.key,
@@ -121,22 +142,16 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
     final selectedVisit = rows.isEmpty ? null : rows.first.visit;
     final instance = selectedVisit?.instance;
     final active = instance?.status == TripStatus.active;
-    // On the map (brand App board): "あと5分" to the first stop the rider
-    // follows that the bus has not reached, and "+5分" when it is late.
-    int? etaMinutes;
-    int? delayMinutes;
-    if (active) {
-      for (final r in rows) {
-        final v = r.visit;
-        if (v == null || catalog.subscriptionFor(pattern.id, r.stop.sequence) == null) continue;
-        if (v.kind != VisitKind.onTheWay && v.kind != VisitKind.delayed) continue;
-        final time = v.time ?? v.scheduled;
-        if (time != null) etaMinutes = minutesUntil(time, now);
-        break;
-      }
-      final next = nextIndex < 0 ? null : rows[nextIndex].visit;
-      if (next != null && next.kind == VisitKind.delayed) delayMinutes = next.delay.inMinutes;
-    }
+    final labels = active
+        ? mapBusLabels(
+            followed: [
+              for (final r in rows)
+                if (catalog.subscriptionFor(pattern.id, r.stop.sequence) != null) r.visit,
+            ],
+            next: nextIndex < 0 ? null : rows[nextIndex].visit,
+            now: now,
+          )
+        : (eta: null, delay: null);
     final showMap = catalog.canSeeMap(route) && state.mapStyleUrl.isNotEmpty;
 
     return Scaffold(
@@ -164,8 +179,8 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
                   route: route,
                   pattern: pattern,
                   tripInstanceId: active ? instance?.id : null,
-                  etaMinutes: etaMinutes,
-                  delayMinutes: delayMinutes,
+                  etaMinutes: labels.eta,
+                  delayMinutes: labels.delay,
                   // About to reach a stop the rider follows.
                   arriving: active &&
                       rows.any(

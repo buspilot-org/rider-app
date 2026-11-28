@@ -175,7 +175,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get routeGone => 'この路線は表示できなくなりました。前の画面に戻って、ほかの路線を選んでください。';
+  String get routeGone => 'この路線は表示できなくなりました。前の画面に戻ってください。';
 
   @override
   String get mapUnavailable => 'この路線の地図はありません。到着予定は下の一覧で確認できます。';
@@ -186,6 +186,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String mapDelayBadge(int minutes) {
     return '+$minutes分';
+  }
+
+  @override
+  String mapEtaLabel(int minutes) {
+    return 'あと$minutes分';
   }
 
   @override

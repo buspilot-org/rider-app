@@ -51,10 +51,11 @@
   "tripAt": "Fahrt um {time}",
   "liveTrip": "Zusatzfahrt",
   "positionUnknownSince": "Wir prüfen gerade, wo der Bus ist (seit {time}). Bitte warte einen Moment.",
-  "routeGone": "Diese Linie kann nicht mehr angezeigt werden. Geh zurück und wähle eine andere Linie.",
+  "routeGone": "Diese Linie kann nicht mehr angezeigt werden. Bitte geh zurück.",
   "mapUnavailable": "Für diese Linie gibt es keine Karte. Die Ankunftszeiten stehen unten.",
   "mapFailed": "Die Karte konnte nicht angezeigt werden. Bitte versuche es noch einmal.",
   "mapDelayBadge": "+{minutes} Min.",
+  "mapEtaLabel": "{minutes} Min.",
 
   "stopPassed": "Vorbei",
   "stopAtStop": "Bus an der Haltestelle",
