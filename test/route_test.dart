@@ -61,7 +61,7 @@ void main() {
     expect(y, orderedEquals([...y]..sort()));
 
     // No map for an arrival-times-only audience.
-    expect(find.text('Map not available'), findsNothing);
+    expect(find.byType(RouteMap), findsNothing);
   });
 
   testWidgets('follow the second visit of a stop with alert settings', (tester) async {

@@ -6,6 +6,7 @@ import '../state/app_state.dart';
 import 'alert_settings_screen.dart';
 import 'home_screen.dart';
 import 'route_map.dart';
+import 'stop_card.dart' show minutesUntil;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -119,6 +120,23 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
     );
     final selectedVisit = rows.isEmpty ? null : rows.first.visit;
     final instance = selectedVisit?.instance;
+    final active = instance?.status == TripStatus.active;
+    // On the map (brand App board): "あと5分" to the first stop the rider
+    // follows that the bus has not reached, and "+5分" when it is late.
+    int? etaMinutes;
+    int? delayMinutes;
+    if (active) {
+      for (final r in rows) {
+        final v = r.visit;
+        if (v == null || catalog.subscriptionFor(pattern.id, r.stop.sequence) == null) continue;
+        if (v.kind != VisitKind.onTheWay && v.kind != VisitKind.delayed) continue;
+        final time = v.time ?? v.scheduled;
+        if (time != null) etaMinutes = minutesUntil(time, now);
+        break;
+      }
+      final next = nextIndex < 0 ? null : rows[nextIndex].visit;
+      if (next != null && next.kind == VisitKind.delayed) delayMinutes = next.delay.inMinutes;
+    }
     final showMap = catalog.canSeeMap(route) && state.mapStyleUrl.isNotEmpty;
 
     return Scaffold(
@@ -145,9 +163,11 @@ class _RouteScreenState extends State<RouteScreen> with Polling {
                   key: ValueKey(pattern.id),
                   route: route,
                   pattern: pattern,
-                  tripInstanceId: instance?.status == TripStatus.active ? instance?.id : null,
+                  tripInstanceId: active ? instance?.id : null,
+                  etaMinutes: etaMinutes,
+                  delayMinutes: delayMinutes,
                   // About to reach a stop the rider follows.
-                  arriving: instance?.status == TripStatus.active &&
+                  arriving: active &&
                       rows.any(
                         (r) =>
                             r.visit?.event?.state == StopState.approaching &&

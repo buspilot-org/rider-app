@@ -37,6 +37,7 @@ class _StopMiniMapState extends State<StopMiniMap> {
   bool _loaded = false;
   bool _started = false;
 
+  /// Whether this build has maps (the light style; dark is optional).
   String get _style => AppScope.read(context).mapStyleUrl;
 
   @override
@@ -93,7 +94,7 @@ class _StopMiniMapState extends State<StopMiniMap> {
         child: SizedBox(
           height: widget.height,
           child: MapLibreMap(
-            styleString: _style,
+            styleString: AppScope.read(context).mapStyleFor(Theme.of(context).brightness),
             initialCameraPosition: CameraPosition(target: LatLng(p.lat, p.lng), zoom: 15.5),
             myLocationEnabled: false,
             scrollGesturesEnabled: false,

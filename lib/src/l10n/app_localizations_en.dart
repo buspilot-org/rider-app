@@ -62,7 +62,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get joinRevoked =>
-      'Your access was ended by the operator. Ask them for a new invitation.';
+      'This operator\'s buses are no longer shown. To continue, ask the operator for a new invitation.';
 
   @override
   String get joinRateLimited =>
@@ -124,12 +124,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String arrivalDue(String time) {
-    return '$time · now';
+    return '$time · arriving soon';
   }
 
   @override
   String arrivalDelayed(int minutes, String time) {
-    return 'Delayed ~$minutes min · $time';
+    return 'About $minutes min late · $time';
   }
 
   @override
@@ -179,10 +179,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get routeGone => 'This route is no longer available.';
+  String get routeGone =>
+      'This route can no longer be shown. Go back and choose another route.';
 
   @override
-  String get mapUnavailable => 'Map not available';
+  String get mapUnavailable =>
+      'There is no map for this route. Arrival times are listed below.';
+
+  @override
+  String get mapFailed => 'The map could not be shown. Please try again.';
+
+  @override
+  String mapDelayBadge(int minutes) {
+    return '+$minutes min';
+  }
 
   @override
   String get stopPassed => 'Passed';
@@ -387,7 +397,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get postCategoryCancellation => 'Cancellation';
 
   @override
-  String get postCategoryDelay => 'Delay';
+  String get postCategoryDelay => 'Running late';
 
   @override
   String get postCategoryGeneral => 'General';

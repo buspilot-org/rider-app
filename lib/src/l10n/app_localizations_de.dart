@@ -63,7 +63,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get joinRevoked =>
-      'Der Betreiber hat deinen Zugang beendet. Bitte ihn um eine neue Einladung.';
+      'Die Busse dieses Betreibers werden nicht mehr angezeigt. Um weiterzumachen, bitte den Betreiber um eine neue Einladung.';
 
   @override
   String get joinRateLimited =>
@@ -127,12 +127,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String arrivalDue(String time) {
-    return '$time · jetzt';
+    return '$time · kommt gleich';
   }
 
   @override
   String arrivalDelayed(int minutes, String time) {
-    return 'Verspätet ~$minutes Min. · $time';
+    return 'Etwa $minutes Min. später · $time';
   }
 
   @override
@@ -182,10 +182,21 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get routeGone => 'Diese Linie ist nicht mehr verfügbar.';
+  String get routeGone =>
+      'Diese Linie kann nicht mehr angezeigt werden. Geh zurück und wähle eine andere Linie.';
 
   @override
-  String get mapUnavailable => 'Karte nicht verfügbar';
+  String get mapUnavailable =>
+      'Für diese Linie gibt es keine Karte. Die Ankunftszeiten stehen unten.';
+
+  @override
+  String get mapFailed =>
+      'Die Karte konnte nicht angezeigt werden. Bitte versuche es noch einmal.';
+
+  @override
+  String mapDelayBadge(int minutes) {
+    return '+$minutes Min.';
+  }
 
   @override
   String get stopPassed => 'Vorbei';
@@ -446,7 +457,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get liveTripEnded =>
-      'Eine Sonderfahrt, der du folgst, wird nicht mehr angezeigt';
+      'Eine Sonderfahrt, der du gefolgt bist, wird nicht mehr angezeigt';
 
   @override
   String get liveTripGone => 'Diese Fahrt wird nicht mehr angezeigt.';

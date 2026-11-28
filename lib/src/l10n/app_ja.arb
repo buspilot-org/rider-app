@@ -1,6 +1,6 @@
 {
   "@@locale": "ja",
-  "appTitle": "Buspilot",
+  "appTitle": "バスパイロット",
 
   "languageTitle": "言語を選んでください",
   "languageFollowPhone": "端末の設定に合わせる",
@@ -17,7 +17,7 @@
   "joinJoined": "{operator} に参加しました",
   "joinAlreadyMember": "{operator} にはすでに参加しています",
   "joinInvalid": "このコードは無効です。確認してもう一度お試しください。",
-  "joinRevoked": "事業者によりアクセスが終了されました。新しい招待を依頼してください。",
+  "joinRevoked": "この事業者のバスは表示されなくなりました。続けて使うには、事業者に新しい招待を依頼してください。",
   "joinRateLimited": "試行回数が多すぎます。1時間後にもう一度お試しください。",
   "offlineError": "接続できません。オンラインになってからもう一度お試しください。",
   "genericError": "うまくいきませんでした。もう一度お試しください。",
@@ -51,8 +51,10 @@
   "tripAt": "{time} 発の便",
   "liveTrip": "臨時便",
   "positionUnknownSince": "バスの位置を確認しています（{time} から）。しばらくお待ちください。",
-  "routeGone": "この路線は利用できなくなりました。",
-  "mapUnavailable": "地図は利用できません",
+  "routeGone": "この路線は表示できなくなりました。前の画面に戻って、ほかの路線を選んでください。",
+  "mapUnavailable": "この路線の地図はありません。到着予定は下の一覧で確認できます。",
+  "mapFailed": "地図を表示できませんでした。もう一度お試しください。",
+  "mapDelayBadge": "+{minutes}分",
 
   "stopPassed": "通過",
   "stopAtStop": "停車中",

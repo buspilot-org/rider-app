@@ -10,7 +10,7 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
-  String get appTitle => 'Buspilot';
+  String get appTitle => 'バスパイロット';
 
   @override
   String get languageTitle => '言語を選んでください';
@@ -61,7 +61,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get joinInvalid => 'このコードは無効です。確認してもう一度お試しください。';
 
   @override
-  String get joinRevoked => '事業者によりアクセスが終了されました。新しい招待を依頼してください。';
+  String get joinRevoked => 'この事業者のバスは表示されなくなりました。続けて使うには、事業者に新しい招待を依頼してください。';
 
   @override
   String get joinRateLimited => '試行回数が多すぎます。1時間後にもう一度お試しください。';
@@ -175,10 +175,18 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get routeGone => 'この路線は利用できなくなりました。';
+  String get routeGone => 'この路線は表示できなくなりました。前の画面に戻って、ほかの路線を選んでください。';
 
   @override
-  String get mapUnavailable => '地図は利用できません';
+  String get mapUnavailable => 'この路線の地図はありません。到着予定は下の一覧で確認できます。';
+
+  @override
+  String get mapFailed => '地図を表示できませんでした。もう一度お試しください。';
+
+  @override
+  String mapDelayBadge(int minutes) {
+    return '+$minutes分';
+  }
 
   @override
   String get stopPassed => '通過';
